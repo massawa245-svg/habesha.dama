@@ -6,11 +6,12 @@ import UserProfile from '@/components/auth/UserProfile'
 import Matchmaking from '@/components/game/Matchmaking'
 import RaumErstellen from '@/components/game/RaumErstellen'
 import OnlineGame from '@/components/game/OnlineGame'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, createGuestUser } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
+  const [isGuest, setIsGuest] = useState(false)
   const [gameId, setGameId] = useState<number | null>(null)
   const [playerColor, setPlayerColor] = useState<'schwarz' | 'weiss' | null>(null)
   const [showRaum, setShowRaum] = useState(false)
@@ -28,28 +29,35 @@ export default function Home() {
     return () => subscription.unsubscribe()
   }, [supabase])
 
-  // 🌟 LANDING PAGE für nicht eingeloggte Benutzer
+  const handleGuestLogin = async () => {
+    const guestUser = await createGuestUser()
+    if (guestUser) {
+      setUser(guestUser)
+      setIsGuest(true)
+    }
+  }
+
+  // LANDING PAGE für nicht eingeloggte
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950">
         {/* Hero Section */}
         <div className="relative overflow-hidden">
-          {/* Hintergrund-Effekte */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-20 left-10 w-64 h-64 bg-amber-500 rounded-full blur-3xl"></div>
             <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-600 rounded-full blur-3xl"></div>
           </div>
 
-          {/* Navigation */}
           <nav className="relative z-10 flex justify-between items-center p-6 max-w-7xl mx-auto">
             <div className="flex items-center gap-2">
               <span className="text-3xl">🇪🇹</span>
               <span className="text-2xl font-bold text-white">Habesha Dama</span>
             </div>
-            <LoginButton />
+            <div className="flex gap-3">
+              <LoginButton />
+            </div>
           </nav>
 
-          {/* Hero Content */}
           <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 md:py-32">
             <div className="max-w-3xl">
               <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
@@ -61,8 +69,20 @@ export default function Home() {
                 Kostenlos, einfach und direkt im Browser.
               </p>
               
+              {/* NEU: Guest Mode Button */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-12">
+                <button
+                  onClick={handleGuestLogin}
+                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-2"
+                >
+                  <span>🎮</span>
+                  Als Gast spielen
+                </button>
+                <LoginButton />
+              </div>
+
               {/* Feature Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-amber-500/30">
                   <div className="text-4xl mb-3">⚡</div>
                   <h3 className="text-xl font-bold text-white mb-2">Echtzeit</h3>
@@ -79,22 +99,11 @@ export default function Home() {
                   <p className="text-amber-200">Funktioniert auf Handy und PC</p>
                 </div>
               </div>
-
-              {/* CTA Button */}
-              <div className="flex gap-4">
-                <LoginButton />
-                <a 
-                  href="#features" 
-                  className="bg-white/10 backdrop-blur-sm text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white/20 transition-all border border-white/30"
-                >
-                  Mehr erfahren
-                </a>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Features Section */}
+        {/* Features Section (bleibt gleich) */}
         <div id="features" className="py-20 px-6 max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold text-white text-center mb-12">
             Warum <span className="text-amber-300">Habesha Dama?</span>
@@ -148,7 +157,7 @@ export default function Home() {
     )
   }
 
-  // 🎮 GAME SECTION für eingeloggte Benutzer (bleibt gleich)
+  // 🎮 GAME SECTION für eingeloggte User (bleibt gleich)
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 flex flex-col items-center p-4">
       <div className="w-full max-w-4xl">
