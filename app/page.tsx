@@ -69,7 +69,7 @@ export default function Home() {
                 Kostenlos, einfach und direkt im Browser.
               </p>
               
-              {/* NEU: Guest Mode Button */}
+              {/* Guest Mode Button */}
               <div className="flex flex-col sm:flex-row gap-4 mb-12">
                 <button
                   onClick={handleGuestLogin}
@@ -103,7 +103,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Features Section (bleibt gleich) */}
+        {/* Features Section */}
         <div id="features" className="py-20 px-6 max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold text-white text-center mb-12">
             Warum <span className="text-amber-300">Habesha Dama?</span>
@@ -157,7 +157,7 @@ export default function Home() {
     )
   }
 
-  // 🎮 GAME SECTION für eingeloggte User (bleibt gleich)
+  // 🎮 GAME SECTION für eingeloggte User
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 flex flex-col items-center p-4">
       <div className="w-full max-w-4xl">
