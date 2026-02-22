@@ -7,10 +7,9 @@ export const createClient = () =>
   )
 
 export const createGuestUser = async () => {
-  // Hier muss createClient() aufgerufen werden!
+  // WICHTIG: Hier muss createClient() aufgerufen werden!
   const supabase = createClient()
   
-  // Erstelle einen anonymen User in Supabase
   const { data, error } = await supabase.auth.signInAnonymously()
   
   if (error) {
