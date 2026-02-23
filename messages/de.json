@@ -6,6 +6,7 @@
     "googleLogin": "Mit Google anmelden",
     "createRoom": "Raum erstellen (Freund einladen)",
     "back": "Zurück",
+    "findOpponent": "Gegner suchen",
     "features": {
       "realtime": "Echtzeit",
       "realtimeDesc": "Spiele gegen Freunde in Echtzeit",
@@ -25,5 +26,22 @@
       "free": "Komplett kostenlos",
       "freeDesc": "Keine versteckten Kosten – einfach anmelden und spielen."
     }
+  },
+  "Game": {
+    "findOpponent": "Gegner suchen",
+    "searching": "Suche Gegner...",
+    "cancel": "Abbrechen",
+    "youAre": "Du spielst",
+    "black": "Schwarz",
+    "white": "Weiß",
+    "currentTurn": "Aktueller Zug",
+    "yourTurn": "Du bist dran!",
+    "opponentTurn": "Gegner zieht",
+    "waiting": "Warte auf Gegner...",
+    "copyLink": "Link kopieren",
+    "yourRoomCode": "Dein Raum-Code",
+    "shareLink": "Teile diesen Link",
+    "logout": "Logout",
+    "loggedIn": "Eingeloggt"
   }
 }

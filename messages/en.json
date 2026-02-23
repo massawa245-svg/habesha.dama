@@ -6,6 +6,7 @@
     "googleLogin": "Sign in with Google",
     "createRoom": "Create room (invite friend)",
     "back": "Back",
+    "findOpponent": "Find opponent",
     "features": {
       "realtime": "Real-time",
       "realtimeDesc": "Play against friends in real-time",
@@ -25,5 +26,22 @@
       "free": "Completely Free",
       "freeDesc": "No hidden costs – just sign up and play."
     }
+  },
+  "Game": {
+    "findOpponent": "Find opponent",
+    "searching": "Searching for opponent...",
+    "cancel": "Cancel",
+    "youAre": "You are",
+    "black": "Black",
+    "white": "White",
+    "currentTurn": "Current turn",
+    "yourTurn": "Your turn!",
+    "opponentTurn": "Opponent's turn",
+    "waiting": "Waiting for opponent...",
+    "copyLink": "Copy link",
+    "yourRoomCode": "Your room code",
+    "shareLink": "Share this link",
+    "logout": "Logout",
+    "loggedIn": "Logged in"
   }
 }
