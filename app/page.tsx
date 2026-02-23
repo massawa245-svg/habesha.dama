@@ -12,6 +12,8 @@ import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { useTranslations } from 'next-intl'
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false)
+  const [locale, setLocale] = useState('de')
   const t = useTranslations('Home')
   const [user, setUser] = useState<User | null>(null)
   const [isGuest, setIsGuest] = useState(false)
@@ -19,6 +21,34 @@ export default function Home() {
   const [playerColor, setPlayerColor] = useState<'schwarz' | 'weiss' | null>(null)
   const [showRaum, setShowRaum] = useState(false)
   const supabase = createClient()
+
+  // Sprache aus Cookie lesen
+  useEffect(() => {
+    const getLocaleFromCookie = () => {
+      const cookies = document.cookie.split(';')
+      const localeCookie = cookies.find(c => c.trim().startsWith('NEXT_LOCALE='))
+      return localeCookie ? localeCookie.split('=')[1] : 'de'
+    }
+    setLocale(getLocaleFromCookie())
+    setMounted(true)
+  }, [])
+
+  // Auf Sprachwechsel reagieren
+  useEffect(() => {
+    if (!mounted) return
+    
+    const checkLocale = () => {
+      const cookies = document.cookie.split(';')
+      const localeCookie = cookies.find(c => c.trim().startsWith('NEXT_LOCALE='))
+      const newLocale = localeCookie ? localeCookie.split('=')[1] : 'de'
+      if (newLocale !== locale) {
+        window.location.reload()
+      }
+    }
+    
+    const interval = setInterval(checkLocale, 500)
+    return () => clearInterval(interval)
+  }, [locale, mounted])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -38,6 +68,11 @@ export default function Home() {
       setUser(guestUser)
       setIsGuest(true)
     }
+  }
+
+  // Nicht rendern bis gemountet
+  if (!mounted) {
+    return null
   }
 
   // LANDING PAGE für nicht eingeloggte
@@ -149,7 +184,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🇪🇹</span>
-              <span className="text-white">Habesha Dama</span>
+              <span className="text-white">{t('title')}</span>
             </div>
             <div className="text-amber-300 text-sm">
               © 2026 Habesha Dama. Alle Rechte vorbehalten.
@@ -184,7 +219,7 @@ export default function Home() {
                   onClick={() => setShowRaum(true)}
                   className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-4 rounded-xl text-xl font-bold hover:from-blue-500 hover:to-blue-400 transition-all"
                 >
-                  🏠 Raum erstellen (Freund einladen)
+                  🏠 {t('createRoom')}
                 </button>
               </div>
             ) : (
@@ -199,7 +234,7 @@ export default function Home() {
                   onClick={() => setShowRaum(false)}
                   className="mt-4 text-amber-300 hover:text-amber-100 transition-colors"
                 >
-                  ← Zurück
+                  ← {t('back')}
                 </button>
               </div>
             )}
