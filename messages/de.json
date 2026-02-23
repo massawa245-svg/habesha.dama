@@ -1,0 +1,29 @@
+{
+  "Home": {
+    "title": "Habesha Dama",
+    "subtitle": "Spiele gegen Freunde in Echtzeit – mit den originalen Regeln. Kostenlos, einfach und direkt im Browser.",
+    "guestPlay": "Als Gast spielen",
+    "googleLogin": "Mit Google anmelden",
+    "createRoom": "Raum erstellen (Freund einladen)",
+    "back": "Zurück",
+    "features": {
+      "realtime": "Echtzeit",
+      "realtimeDesc": "Spiele gegen Freunde in Echtzeit",
+      "tournaments": "Turniere",
+      "tournamentsDesc": "Organisiere Turniere mit Freunden",
+      "mobile": "Mobile First",
+      "mobileDesc": "Funktioniert auf Handy und PC"
+    },
+    "why": {
+      "title": "Warum Habesha Dama?",
+      "rules": "Originale Regeln",
+      "rulesDesc": "Wir spielen nach den echten Habesha-Regeln – inklusive Mehrfach-Fressen und Königszügen.",
+      "invite": "Freunde einladen",
+      "inviteDesc": "Erstelle Räume und teile Links – deine Freunde können sofort mitspielen.",
+      "nodownload": "Kein Download",
+      "nodownloadDesc": "Einfach den Link öffnen und loslegen – funktioniert in jedem Browser.",
+      "free": "Komplett kostenlos",
+      "freeDesc": "Keine versteckten Kosten – einfach anmelden und spielen."
+    }
+  }
+}

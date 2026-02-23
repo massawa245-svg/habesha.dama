@@ -8,8 +8,11 @@ import RaumErstellen from '@/components/game/RaumErstellen'
 import OnlineGame from '@/components/game/OnlineGame'
 import { createClient, createGuestUser } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import { useTranslations } from 'next-intl'
 
 export default function Home() {
+  const t = useTranslations('Home')
   const [user, setUser] = useState<User | null>(null)
   const [isGuest, setIsGuest] = useState(false)
   const [gameId, setGameId] = useState<number | null>(null)
@@ -48,12 +51,14 @@ export default function Home() {
             <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-600 rounded-full blur-3xl"></div>
           </div>
 
+          {/* Navigation mit LanguageSwitcher */}
           <nav className="relative z-10 flex justify-between items-center p-6 max-w-7xl mx-auto">
             <div className="flex items-center gap-2">
               <span className="text-3xl">🇪🇹</span>
-              <span className="text-2xl font-bold text-white">Habesha Dama</span>
+              <span className="text-2xl font-bold text-white">{t('title')}</span>
             </div>
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher />
               <LoginButton />
             </div>
           </nav>
@@ -61,12 +66,10 @@ export default function Home() {
           <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 md:py-32">
             <div className="max-w-3xl">
               <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-                Das traditionelle 
-                <span className="text-amber-300"> Habesha Dama</span>
+                <span className="text-amber-300">{t('title')}</span>
               </h1>
               <p className="text-xl md:text-2xl text-amber-100 mb-8">
-                Spiele gegen Freunde in Echtzeit – mit den originalen Regeln. 
-                Kostenlos, einfach und direkt im Browser.
+                {t('subtitle')}
               </p>
               
               {/* Guest Mode Button */}
@@ -76,7 +79,7 @@ export default function Home() {
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-2"
                 >
                   <span>🎮</span>
-                  Als Gast spielen
+                  {t('guestPlay')}
                 </button>
                 <LoginButton />
               </div>
@@ -85,18 +88,18 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-amber-500/30">
                   <div className="text-4xl mb-3">⚡</div>
-                  <h3 className="text-xl font-bold text-white mb-2">Echtzeit</h3>
-                  <p className="text-amber-200">Spiele gegen Freunde in Echtzeit</p>
+                  <h3 className="text-xl font-bold text-white mb-2">{t('features.realtime')}</h3>
+                  <p className="text-amber-200">{t('features.realtimeDesc')}</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-amber-500/30">
                   <div className="text-4xl mb-3">🏆</div>
-                  <h3 className="text-xl font-bold text-white mb-2">Turniere</h3>
-                  <p className="text-amber-200">Organisiere Turniere mit Freunden</p>
+                  <h3 className="text-xl font-bold text-white mb-2">{t('features.tournaments')}</h3>
+                  <p className="text-amber-200">{t('features.tournamentsDesc')}</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-amber-500/30">
                   <div className="text-4xl mb-3">📱</div>
-                  <h3 className="text-xl font-bold text-white mb-2">Mobile First</h3>
-                  <p className="text-amber-200">Funktioniert auf Handy und PC</p>
+                  <h3 className="text-xl font-bold text-white mb-2">{t('features.mobile')}</h3>
+                  <p className="text-amber-200">{t('features.mobileDesc')}</p>
                 </div>
               </div>
             </div>
@@ -106,36 +109,36 @@ export default function Home() {
         {/* Features Section */}
         <div id="features" className="py-20 px-6 max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold text-white text-center mb-12">
-            Warum <span className="text-amber-300">Habesha Dama?</span>
+            {t('why.title')}
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex gap-4">
               <div className="text-3xl bg-amber-600/20 p-4 rounded-xl">🎯</div>
               <div>
-                <h3 className="text-2xl font-bold text-white mb-2">Originale Regeln</h3>
-                <p className="text-amber-200">Wir spielen nach den echten Habesha-Regeln – inklusive Mehrfach-Fressen und Königszügen.</p>
+                <h3 className="text-2xl font-bold text-white mb-2">{t('why.rules')}</h3>
+                <p className="text-amber-200">{t('why.rulesDesc')}</p>
               </div>
             </div>
             <div className="flex gap-4">
               <div className="text-3xl bg-amber-600/20 p-4 rounded-xl">🤝</div>
               <div>
-                <h3 className="text-2xl font-bold text-white mb-2">Freunde einladen</h3>
-                <p className="text-amber-200">Erstelle Räume und teile Links – deine Freunde können sofort mitspielen.</p>
+                <h3 className="text-2xl font-bold text-white mb-2">{t('why.invite')}</h3>
+                <p className="text-amber-200">{t('why.inviteDesc')}</p>
               </div>
             </div>
             <div className="flex gap-4">
               <div className="text-3xl bg-amber-600/20 p-4 rounded-xl">⚡</div>
               <div>
-                <h3 className="text-2xl font-bold text-white mb-2">Kein Download</h3>
-                <p className="text-amber-200">Einfach den Link öffnen und loslegen – funktioniert in jedem Browser.</p>
+                <h3 className="text-2xl font-bold text-white mb-2">{t('why.nodownload')}</h3>
+                <p className="text-amber-200">{t('why.nodownloadDesc')}</p>
               </div>
             </div>
             <div className="flex gap-4">
               <div className="text-3xl bg-amber-600/20 p-4 rounded-xl">🆓</div>
               <div>
-                <h3 className="text-2xl font-bold text-white mb-2">Komplett kostenlos</h3>
-                <p className="text-amber-200">Keine versteckten Kosten – einfach anmelden und spielen.</p>
+                <h3 className="text-2xl font-bold text-white mb-2">{t('why.free')}</h3>
+                <p className="text-amber-200">{t('why.freeDesc')}</p>
               </div>
             </div>
           </div>

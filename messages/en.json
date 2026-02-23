@@ -1,0 +1,29 @@
+{
+  "Home": {
+    "title": "Habesha Dama",
+    "subtitle": "Play against friends in real-time – with the original rules. Free, simple, and directly in your browser.",
+    "guestPlay": "Play as Guest",
+    "googleLogin": "Sign in with Google",
+    "createRoom": "Create room (invite friend)",
+    "back": "Back",
+    "features": {
+      "realtime": "Real-time",
+      "realtimeDesc": "Play against friends in real-time",
+      "tournaments": "Tournaments",
+      "tournamentsDesc": "Organize tournaments with friends",
+      "mobile": "Mobile First",
+      "mobileDesc": "Works on phone and PC"
+    },
+    "why": {
+      "title": "Why Habesha Dama?",
+      "rules": "Original Rules",
+      "rulesDesc": "We play by the real Habesha rules – including multiple captures and king moves.",
+      "invite": "Invite Friends",
+      "inviteDesc": "Create rooms and share links – your friends can join instantly.",
+      "nodownload": "No Download",
+      "nodownloadDesc": "Just open the link and start playing – works in any browser.",
+      "free": "Completely Free",
+      "freeDesc": "No hidden costs – just sign up and play."
+    }
+  }
+}
