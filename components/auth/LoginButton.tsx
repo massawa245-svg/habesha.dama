@@ -23,16 +23,11 @@ export default function LoginButton() {
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.refresh()
-  }
-
   return (
     <button
       onClick={handleLogin}
       disabled={loading}
-      className="bg-white text-gray-800 px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-100 transition-colors shadow-md"
+      className="bg-white hover:bg-gray-100 text-gray-800 px-6 py-3 rounded-lg text-base font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 w-full"
     >
       <svg className="w-5 h-5" viewBox="0 0 24 24">
         <path
