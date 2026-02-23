@@ -2,7 +2,7 @@
 
 import { useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function LanguageSwitcher() {
   const locale = useLocale()
@@ -10,13 +10,32 @@ export default function LanguageSwitcher() {
   const [isOpen, setIsOpen] = useState(false)
 
   const switchLocale = (newLocale: string) => {
-    document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`
+    // Cookie setzen
+    document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`
+    
+    // Seite neu laden mit neuer Sprache
     router.refresh()
     setIsOpen(false)
+    
+    // Kleiner Trick: Seite komplett neu laden (manchmal nötig)
+    setTimeout(() => {
+      window.location.reload()
+    }, 100)
   }
 
+  // Schließen bei Klick außerhalb
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isOpen && !(event.target as Element).closest('.language-switcher')) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [isOpen])
+
   return (
-    <div className="relative">
+    <div className="relative language-switcher">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-amber-500/30 text-white hover:bg-white/20 transition-all"
