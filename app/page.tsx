@@ -10,6 +10,7 @@ import { createClient, createGuestUser } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { useTranslations } from 'next-intl'
+import LogoutButton from '@/components/auth/LogoutButton'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
@@ -202,6 +203,13 @@ export default function Home() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-white">Habesha Dama 🇪🇹</h1>
           <UserProfile />
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-4xl font-bold text-white">Habesha Dama 🇪🇹</h1>
+          <div className="flex items-center gap-3">
+           <UserProfile />
+           <LogoutButton />
+         </div>
+       </div>
         </div>
 
         {!gameId ? (
