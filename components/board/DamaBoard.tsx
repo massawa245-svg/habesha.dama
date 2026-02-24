@@ -102,8 +102,7 @@ export default function DamaBoard({
               // 🟢 AMPEL: Kann dieser Stein bewegt werden? (nur wenn du dran bist UND es dein Stein ist)
               const kannBewegtWerden = meinSpieler === aktuellerSpieler && stein?.spieler === meinSpieler
               
-              const steinSize = 'w-[8vw] h-[8vw] min-w-[45px] min-h-[45px] max-w-[90px] max-h-[90px]'
-              
+              const steinSize = 'w-[7vw] h-[7vw] min-w-[38px] min-h-[38px] max-w-[75px] max-h-[75px]'
               return (
                 <div
                   key={`${rowIndex}-${colIndex}`}
