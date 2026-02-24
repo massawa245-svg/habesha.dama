@@ -87,7 +87,7 @@ export default function Home() {
             <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-600 rounded-full blur-3xl"></div>
           </div>
 
-          {/* Navigation nur mit LanguageSwitcher - Login entfernt */}
+          {/* Navigation nur mit LanguageSwitcher */}
           <nav className="relative z-10 flex justify-between items-center p-4 sm:p-6 max-w-7xl mx-auto">
             <div className="flex items-center gap-2">
               <span className="text-2xl sm:text-3xl">🇪🇹</span>
@@ -104,22 +104,22 @@ export default function Home() {
               <p className="text-base sm:text-lg md:text-xl text-amber-100 mb-6 sm:mb-8 px-4 sm:px-0">
                 {t('subtitle')}
               </p>
-              {/* Buttons - gleiche Größe für beide */}
-           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 max-w-xs sm:max-w-none mx-auto sm:mx-0">
-          <button
-          onClick={handleGuestLogin}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-base font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 w-full sm:w-[200px]"
-             >
-            <span>🎮</span>
-             {t('guestPlay')}
-            </button>
-            <div className="w-full sm:w-[200px]">
-          <LoginButton />
-           </div>
-         </div>
-             
+              
+              {/* Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 max-w-xs sm:max-w-none mx-auto sm:mx-0">
+                <button
+                  onClick={handleGuestLogin}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-base font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 w-full sm:w-[200px]"
+                >
+                  <span>🎮</span>
+                  {t('guestPlay')}
+                </button>
+                <div className="w-full sm:w-[200px]">
+                  <LoginButton />
+                </div>
+              </div>
 
-              {/* Feature Grid - 1 Spalte auf Handy, 3 auf Desktop */}
+              {/* Feature Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-10 sm:mt-12">
                 <div className="bg-white/10 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-amber-500/30 text-center sm:text-left">
                   <div className="text-3xl sm:text-4xl mb-2 sm:mb-3">⚡</div>
@@ -148,6 +148,7 @@ export default function Home() {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            {/* ... Why Section bleibt gleich ... */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center sm:items-start text-center sm:text-left">
               <div className="text-2xl sm:text-3xl bg-amber-600/20 p-3 sm:p-4 rounded-xl flex-shrink-0">🎯</div>
               <div>

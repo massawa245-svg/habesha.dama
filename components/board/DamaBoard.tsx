@@ -64,6 +64,26 @@ export default function DamaBoard({
 
   return (
     <div className="relative w-full max-w-[960px] mx-auto">
+      {/* 🟢 EXTRA AMPEL ÜBER DEM BRETT 🟢 */}
+      <div className="mb-4 text-center">
+        <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-sm px-6 py-3 rounded-full border border-amber-500/30">
+          <span className="text-amber-300">Aktueller Zug:</span>
+          <div className="flex items-center gap-2">
+            <span className={`w-4 h-4 rounded-full ${
+              aktuellerSpieler === 'schwarz' ? 'bg-gray-900' : 'bg-white'
+            } border-2 border-amber-500`} />
+            <span className={`text-xl font-bold ${
+              aktuellerSpieler === 'schwarz' ? 'text-white' : 'text-gray-200'
+            }`}>
+              {aktuellerSpieler === 'schwarz' ? 'SCHWARZ' : 'WEISS'}
+            </span>
+            {aktuellerSpieler === meinSpieler && (
+              <span className="ml-2 text-green-400 animate-pulse text-2xl">●</span>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="bg-amber-950 p-4 rounded-2xl shadow-2xl">
         <div className="grid grid-cols-8 gap-0 aspect-square w-full">
           {brett.map((reihe, rowIndex) => 
@@ -78,6 +98,9 @@ export default function DamaBoard({
               if (istSelektiert) {
                 bgColor = 'bg-gradient-to-br from-blue-600 to-blue-500'
               }
+              
+              // 🟢 AMPEL: Kann dieser Stein bewegt werden? (nur wenn du dran bist UND es dein Stein ist)
+              const kannBewegtWerden = meinSpieler === aktuellerSpieler && stein?.spieler === meinSpieler
               
               const steinSize = 'w-[8vw] h-[8vw] min-w-[45px] min-h-[45px] max-w-[90px] max-h-[90px]'
               
@@ -106,7 +129,9 @@ export default function DamaBoard({
                       ${steinSize}
                       rounded-full
                       shadow-lg
-                      ${stein.istKoenig ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-amber-800' : ''}
+                      /* 🟢 GRÜNER RING wenn du diesen Stein bewegen KANNST */
+                      ${kannBewegtWerden ? 'ring-4 ring-green-400 ring-offset-2 ring-offset-amber-800 animate-pulse' : ''}
+                      ${stein.istKoenig ? 'ring-2 ring-yellow-400' : ''}
                       flex items-center justify-center
                       transition-all duration-200
                       hover:scale-105

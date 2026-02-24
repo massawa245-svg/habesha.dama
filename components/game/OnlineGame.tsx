@@ -21,10 +21,58 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false)
   const supabase = createClient()
 
+  // 🔥 NEUE Funktion: Prüft ob ein Spieler noch einen legalen Zug hat
+  const hatSpielerZuege = (brett: Stein[][], spieler: 'schwarz' | 'weiss'): boolean => {
+    // Durch alle Felder gehen
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const stein = brett[row][col]
+        
+        // Nur Steine des aktuellen Spielers prüfen
+        if (stein && stein.spieler === spieler) {
+          
+          // Alle 4 diagonalen Richtungen prüfen (1 Feld)
+          const richtungen = [
+            { row: -1, col: -1 }, { row: -1, col: 1 },
+            { row: 1, col: -1 }, { row: 1, col: 1 }
+          ]
+          
+          for (const dir of richtungen) {
+            const nachRow = row + dir.row
+            const nachCol = col + dir.col
+            
+            // Ist das Feld innerhalb des Bretts?
+            if (nachRow >= 0 && nachRow < 8 && nachCol >= 0 && nachCol < 8) {
+              
+              // Ist das Feld leer?
+              if (brett[nachRow][nachCol] === null) {
+                
+                // Prüfen ob der Zug erlaubt ist (Richtung)
+                const rowDiff = nachRow - row
+                
+                if (!stein.istKoenig) {
+                  // Normale Steine: nur vorwärts
+                  if (spieler === 'schwarz' && rowDiff > 0) return true
+                  if (spieler === 'weiss' && rowDiff < 0) return true
+                } else {
+                  // Könige: alle Richtungen erlaubt
+                  return true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return false
+  }
+
+  // 🔥 VERBESSERTE checkWinner Funktion
   const checkWinner = (aktuellesBrett: Stein[][]): 'schwarz' | 'weiss' | null => {
     let schwarz = 0
     let weiss = 0
     
+    // 1. Steine zählen
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const stein = aktuellesBrett[row][col]
@@ -35,8 +83,20 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
       }
     }
     
+    // 2. Wenn ein Spieler keine Steine mehr hat → verloren
     if (schwarz === 0) return 'weiss'
     if (weiss === 0) return 'schwarz'
+    
+    // 3. 🔥 NEU: Prüfe ob der Spieler, der dran ist, noch ziehen kann
+    const spielerDran = currentTurn
+    const kannZiehen = hatSpielerZuege(aktuellesBrett, spielerDran)
+    
+    // 4. Wenn er nicht ziehen kann → der ANDERE Spieler gewinnt!
+    if (!kannZiehen) {
+      console.log(`🚫 ${spielerDran} kann nicht mehr ziehen → ${spielerDran === 'schwarz' ? 'weiss' : 'schwarz'} gewinnt!`)
+      return spielerDran === 'schwarz' ? 'weiss' : 'schwarz'
+    }
+    
     return null
   }
 
@@ -186,35 +246,46 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
 
   return (
     <div className="space-y-4">
-      {/* Spieler-Info mit Animation */}
+      {/* 🟢 SPIELER-INFO MIT AMPEL 🟢 */}
       <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl border border-amber-500/30 transform transition-all duration-300 hover:scale-105">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          {/* Linke Seite: Du spielst */}
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-full ${playerColor === 'schwarz' ? 'bg-gradient-to-br from-gray-800 to-black' : 'bg-gradient-to-br from-gray-100 to-white'} border-2 border-amber-500 shadow-xl animate-pulse-glow`} />
             <div>
               <p className="text-amber-300 text-sm">Du spielst</p>
-              <p className={`text-2xl font-bold ${playerColor === 'schwarz' ? 'text-white' : 'text-gray-200'}`}>
+              {/* Grüner Rand wenn DU dran bist */}
+              <p className={`text-2xl font-bold 
+                ${playerColor === 'schwarz' ? 'text-white' : 'text-gray-200'}
+                ${currentTurn === playerColor ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-amber-900 px-3 py-1 rounded-lg' : ''}
+              `}>
                 {playerColor === 'schwarz' ? '⚫ SCHWARZ' : '⚪ WEISS'}
               </p>
             </div>
           </div>
           
+          {/* Rechte Seite: Aktueller Zug mit grünem Licht */}
           <div className="text-center">
             <p className="text-amber-300 text-sm">Aktueller Zug</p>
             <div className="flex items-center gap-2">
-              <span className={`w-3 h-3 rounded-full ${currentTurn === 'schwarz' ? 'bg-black' : 'bg-white'} border border-amber-500 ${currentTurn === playerColor ? 'animate-pulse' : ''}`} />
+              {/* Grünes Licht wenn aktueller Spieler = du */}
+              <span className={`w-3 h-3 rounded-full 
+                ${currentTurn === 'schwarz' ? 'bg-black' : 'bg-white'} 
+                border border-amber-500 
+                ${currentTurn === playerColor ? 'bg-green-500 animate-pulse' : ''}
+              `} />
               <span className={`text-2xl font-bold ${currentTurn === 'schwarz' ? 'text-white' : 'text-gray-200'}`}>
                 {currentTurn === 'schwarz' ? '⚫ SCHWARZ' : '⚪ WEISS'}
               </span>
               {currentTurn === playerColor && (
-                <span className="ml-2 text-yellow-300 animate-pulse">⭐</span>
+                <span className="ml-2 text-green-400 animate-pulse text-xl">●</span>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Brett */}
+      {/* Brett mit Ampel-Steinen */}
       <DamaBoard
         brett={brett}
         setBrett={setBrett}
