@@ -103,7 +103,7 @@ export default function DamaBoard({
               const kannBewegtWerden = meinSpieler === aktuellerSpieler && stein?.spieler === meinSpieler
               
         // Stein viel kleiner machen, damit er ins Feld passt
-            const steinSize = 'w-[5vw] h-[5vw] min-w-[30px] min-h-[30px] max-w-[60px] max-h-[60px]'
+              const steinSize = 'w-[90%] h-[90%]'  // Perfekte Größe
               return (
                 <div
                   key={`${rowIndex}-${colIndex}`}
