@@ -39,6 +39,8 @@ export const kannFressen = (
   const gegner = brett[mittelRow]?.[mittelCol];
   
   if (!gegner || gegner.spieler === spieler) return false;
+  // 👑 NEUE REGEL: Normaler Stein kann König nicht fressen!
+if (!istKoenig && gegner.istKoenig) return false;
   
   if (!istKoenig) {
     if (spieler === 'schwarz' && rowDiff <= 0) return false;
