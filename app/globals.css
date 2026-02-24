@@ -60,10 +60,3 @@
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #fbbf24, #d97706);
 }
-/* Für Handy: noch größere Steine */
-@media (max-width: 768px) {
-  .stein {
-    min-width: 50px !important;
-    min-height: 50px !important;
-  }
-}
