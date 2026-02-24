@@ -63,7 +63,7 @@ export default function DamaBoard({
   const istDunklesFeld = (row: number, col: number) => (row + col) % 2 !== 0
 
   return (
-    <div className="relative w-full max-w-[640px]">
+    <div className="relative w-full max-w-[960px] mx-auto">
       <div className="bg-amber-950 p-4 rounded-2xl shadow-2xl">
         <div className="grid grid-cols-8 gap-0 aspect-square w-full">
           {brett.map((reihe, rowIndex) => 
@@ -79,7 +79,7 @@ export default function DamaBoard({
                 bgColor = 'bg-gradient-to-br from-blue-600 to-blue-500'
               }
               
-              const steinSize = 'w-[6vw] h-[6vw] min-w-[30px] min-h-[30px] max-w-[70px] max-h-[70px]'
+              const steinSize = 'w-[8vw] h-[8vw] min-w-[45px] min-h-[45px] max-w-[90px] max-h-[90px]'
               
               return (
                 <div
@@ -98,6 +98,7 @@ export default function DamaBoard({
                 >
                   {stein && (
                     <div className={`
+                      stein
                       ${stein.spieler === 'schwarz' 
                         ? 'bg-gradient-to-br from-gray-800 to-black border-2 border-gray-600' 
                         : 'bg-gradient-to-br from-gray-100 to-white border-2 border-gray-400'
