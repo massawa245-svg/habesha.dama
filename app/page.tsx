@@ -77,123 +77,148 @@ export default function Home() {
   }
 
   // LANDING PAGE für nicht eingeloggte
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-20 left-10 w-64 h-64 bg-amber-500 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-600 rounded-full blur-3xl"></div>
-          </div>
-
-          {/* Navigation nur mit LanguageSwitcher */}
-          <nav className="relative z-10 flex justify-between items-center p-4 sm:p-6 max-w-7xl mx-auto">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl sm:text-3xl">🇪🇹</span>
-              <span className="text-xl sm:text-2xl font-bold text-white">{t('title')}</span>
-            </div>
-            <LanguageSwitcher />
-          </nav>
-
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-            <div className="text-center sm:text-left max-w-3xl mx-auto sm:mx-0">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6">
-                <span className="text-amber-300">{t('title')}</span>
-              </h1>
-              <p className="text-base sm:text-lg md:text-xl text-amber-100 mb-6 sm:mb-8 px-4 sm:px-0">
-                {t('subtitle')}
-              </p>
-              
-              {/* Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 max-w-xs sm:max-w-none mx-auto sm:mx-0">
-                <button
-                  onClick={handleGuestLogin}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-base font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 w-full sm:w-[200px]"
-                >
-                  <span>🎮</span>
-                  {t('guestPlay')}
-                </button>
-                <div className="w-full sm:w-[200px]">
-                  <LoginButton />
-                </div>
-              </div>
-
-              {/* Feature Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-10 sm:mt-12">
-                <div className="bg-white/10 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-amber-500/30 text-center sm:text-left">
-                  <div className="text-3xl sm:text-4xl mb-2 sm:mb-3">⚡</div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">{t('features.realtime')}</h3>
-                  <p className="text-sm sm:text-base text-amber-200">{t('features.realtimeDesc')}</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-amber-500/30 text-center sm:text-left">
-                  <div className="text-3xl sm:text-4xl mb-2 sm:mb-3">🏆</div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">{t('features.tournaments')}</h3>
-                  <p className="text-sm sm:text-base text-amber-200">{t('features.tournamentsDesc')}</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-amber-500/30 text-center sm:text-left">
-                  <div className="text-3xl sm:text-4xl mb-2 sm:mb-3">📱</div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">{t('features.mobile')}</h3>
-                  <p className="text-sm sm:text-base text-amber-200">{t('features.mobileDesc')}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Features Section */}
-        <div id="features" className="py-16 sm:py-20 px-4 sm:px-6 max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white text-center mb-8 sm:mb-12">
-            {t('why.title')}
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            {/* ... Why Section bleibt gleich ... */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center sm:items-start text-center sm:text-left">
-              <div className="text-2xl sm:text-3xl bg-amber-600/20 p-3 sm:p-4 rounded-xl flex-shrink-0">🎯</div>
-              <div>
-                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">{t('why.rules')}</h3>
-                <p className="text-sm sm:text-base text-amber-200">{t('why.rulesDesc')}</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center sm:items-start text-center sm:text-left">
-              <div className="text-2xl sm:text-3xl bg-amber-600/20 p-3 sm:p-4 rounded-xl flex-shrink-0">🤝</div>
-              <div>
-                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">{t('why.invite')}</h3>
-                <p className="text-sm sm:text-base text-amber-200">{t('why.inviteDesc')}</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center sm:items-start text-center sm:text-left">
-              <div className="text-2xl sm:text-3xl bg-amber-600/20 p-3 sm:p-4 rounded-xl flex-shrink-0">⚡</div>
-              <div>
-                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">{t('why.nodownload')}</h3>
-                <p className="text-sm sm:text-base text-amber-200">{t('why.nodownloadDesc')}</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center sm:items-start text-center sm:text-left">
-              <div className="text-2xl sm:text-3xl bg-amber-600/20 p-3 sm:p-4 rounded-xl flex-shrink-0">🆓</div>
-              <div>
-                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">{t('why.free')}</h3>
-                <p className="text-sm sm:text-base text-amber-200">{t('why.freeDesc')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <footer className="border-t border-amber-800/30 py-6 sm:py-8 px-4 sm:px-6 max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl sm:text-2xl">🇪🇹</span>
-              <span className="text-sm sm:text-base text-white">{t('title')}</span>
-            </div>
-            <div className="text-xs sm:text-sm text-amber-300">
-              © 2026 Habesha Dama. Alle Rechte vorbehalten.
-            </div>
-          </div>
-        </footer>
+if (!user) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 overflow-hidden">
+      {/* Animierter Hintergrund */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-20 left-10 w-64 h-64 bg-amber-500 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-600 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border-2 border-amber-500/20 rounded-full animate-rotate-slow"></div>
       </div>
-    )
+
+      {/* Navigation */}
+      <nav className="relative z-10 flex justify-between items-center p-4 sm:p-6 max-w-7xl mx-auto">
+        <div className="flex items-center gap-2">
+          <span className="text-3xl animate-bounce">🇪🇹</span>
+          <span className="text-xl sm:text-2xl font-bold text-white">Habesha Dama</span>
+        </div>
+        <LanguageSwitcher />
+      </nav>
+
+      {/* Hero Section */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Linke Spalte: Text + Buttons */}
+          <div className="text-center lg:text-left animate-slide-in">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-6">
+              <span className="text-amber-300">Habesha</span>
+              <br />
+              <span className="text-white">Dama</span>
+            </h1>
+            
+            <p className="text-lg sm:text-xl text-amber-100 mb-8 max-w-xl mx-auto lg:mx-0">
+              {t('subtitle')}
+            </p>
+
+            {/* Features als kleine Icons */}
+            <div className="flex flex-wrap gap-4 justify-center lg:justify-start mb-8">
+              <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-amber-300 text-sm flex items-center gap-2">
+                <span className="text-green-400">✓</span> Echtzeit
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-amber-300 text-sm flex items-center gap-2">
+                <span className="text-green-400">✓</span> Kostenlos
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-amber-300 text-sm flex items-center gap-2">
+                <span className="text-green-400">✓</span> Original-Regeln
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <button
+                onClick={handleGuestLogin}
+                className="group bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-3"
+              >
+                <span className="text-2xl group-hover:rotate-12 transition-transform">🎮</span>
+                {t('guestPlay')}
+                <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
+              </button>
+              <div className="w-full sm:w-auto">
+                <LoginButton />
+              </div>
+            </div>
+          </div>
+
+          {/* Rechte Spalte: Animiertes Mini-Brett */}
+          <div className="relative hidden lg:block animate-float" style={{ animationDelay: '0.5s' }}>
+            {/* Brett mit Glow-Effekt */}
+            <div className="absolute -inset-4 bg-gradient-to-r from-amber-600/30 to-amber-900/30 rounded-3xl blur-2xl animate-pulse-glow"></div>
+            
+            <div className="relative bg-amber-950 p-4 rounded-2xl shadow-2xl border border-amber-500/30">
+              <div className="grid grid-cols-8 gap-0 aspect-square w-full max-w-[400px] mx-auto">
+                {/* Miniatur-Spielbrett mit sich bewegenden Steinen */}
+                {Array(8).fill(null).map((_, row) =>
+                  Array(8).fill(null).map((_, col) => {
+                    const istDunkel = (row + col) % 2 !== 0
+                    const hatStein = (row < 3 && istDunkel) || (row > 4 && istDunkel)
+                    const farbe = row < 3 ? 'bg-gray-900' : 'bg-gray-100'
+                    
+                    // Animierte Steine (nur einige)
+                    const animate = hatStein && Math.random() > 0.7
+                    
+                    return (
+                      <div
+                        key={`${row}-${col}`}
+                        className={`aspect-square ${istDunkel ? 'bg-amber-900' : 'bg-amber-100'} flex items-center justify-center p-1`}
+                      >
+                        {hatStein && (
+                          <div className={`w-full h-full rounded-full ${farbe} ${animate ? 'animate-pulse' : ''}`} />
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Kleine schwebende Icons */}
+            <div className="absolute -top-8 -right-8 text-4xl animate-float">👑</div>
+            <div className="absolute -bottom-8 -left-8 text-4xl animate-float" style={{ animationDelay: '1s' }}>⚡</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Feature Grid */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-16">
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-12 animate-slide-in">
+          {t('why.title')}
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { icon: '🎯', title: t('why.rules'), desc: t('why.rulesDesc'), delay: '0s' },
+            { icon: '🤝', title: t('why.invite'), desc: t('why.inviteDesc'), delay: '0.2s' },
+            { icon: '⚡', title: t('why.nodownload'), desc: t('why.nodownloadDesc'), delay: '0.4s' },
+            { icon: '🆓', title: t('why.free'), desc: t('why.freeDesc'), delay: '0.6s' }
+          ].map((feature, i) => (
+            <div
+              key={i}
+              className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-amber-500/30 hover:bg-white/10 transition-all transform hover:scale-105 animate-slide-in"
+              style={{ animationDelay: feature.delay }}
+            >
+              <div className="text-4xl mb-4 animate-float">{feature.icon}</div>
+              <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
+              <p className="text-amber-200 text-sm">{feature.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-amber-800/30 py-8 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl animate-pulse">🇪🇹</span>
+            <span className="text-white">Habesha Dama</span>
+          </div>
+          <div className="text-amber-300 text-sm">
+            © 2026 Habesha Dama. Alle Rechte vorbehalten.
+          </div>
+        </div>
+      </footer>
+    </div>
+   )
   }
 
   // 🎮 GAME SECTION für eingeloggte User
