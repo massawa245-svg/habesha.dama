@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { initialesBrett } from '@/lib/game/logic'
+import { useTranslations } from 'next-intl'
 
 interface MatchmakingProps {
   userId: string
@@ -11,6 +12,7 @@ interface MatchmakingProps {
 }
 
 export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
+  const t = useTranslations('Game')  // ← WICHTIG: 'Game' statt 'Home'!
   const [searching, setSearching] = useState(false)
   const [gameChannel, setGameChannel] = useState<RealtimeChannel | null>(null)
   const supabase = createClient()
@@ -19,20 +21,14 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
     setSearching(true)
     console.log('🔍 Suche Gegner...')
 
-    // 1. Nach offenen Spielen suchen
     const { data: openGames } = await supabase
       .from('games')
       .select('*')
       .eq('status', 'waiting')
       .limit(1)
 
-    console.log('Offene Spiele:', openGames)
-
     if (openGames && openGames.length > 0) {
-      // 2. Spiel gefunden – beitreten als Weiß
       const game = openGames[0]
-      console.log('✅ Spiel gefunden! Trete bei als Weiß:', game.id)
-
       const { error } = await supabase
         .from('games')
         .update({ 
@@ -47,9 +43,6 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
         setSearching(false)
       }
     } else {
-      // 3. Kein Spiel gefunden – neues Spiel erstellen als Schwarz
-      console.log('⏳ Kein Gegner – erstelle neues Spiel als Schwarz')
-
       const { data: newGame, error } = await supabase
         .from('games')
         .insert({
@@ -68,9 +61,6 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
         return
       }
 
-      console.log('🆕 Spiel erstellt:', newGame.id)
-
-      // 4. Auf Gegner warten
       const channel = supabase.channel(`game-${newGame.id}`)
         .on(
           'postgres_changes',
@@ -81,9 +71,7 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
             filter: `id=eq.${newGame.id}`
           },
           (payload) => {
-            console.log('👀 Spiel-Update:', payload.new)
             if (payload.new.status === 'playing') {
-              console.log('🎮 Gegner gefunden! Starte Spiel als Schwarz')
               onGameFound(newGame.id, 'schwarz')
               channel.unsubscribe()
             }
@@ -109,17 +97,17 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
           onClick={startSearch}
           className="bg-green-600 text-white px-8 py-4 rounded-lg text-xl hover:bg-green-700 transition-colors w-full"
         >
-          🔍 Gegner suchen
+          🔍 {t('findOpponent')}
         </button>
       ) : (
         <div>
-          <p className="text-white text-xl mb-4">Suche Gegner...</p>
+          <p className="text-white text-xl mb-4">{t('searching')}</p>
           <div className="animate-spin text-5xl mb-6">⏳</div>
           <button
             onClick={cancelSearch}
             className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors"
           >
-            Abbrechen
+            {t('cancel')}
           </button>
         </div>
       )}
