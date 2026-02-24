@@ -63,7 +63,7 @@ export default function DamaBoard({
   const istDunklesFeld = (row: number, col: number) => (row + col) % 2 !== 0
 
   return (
-    <div className="relative w-full max-w-[960px] mx-auto">
+   <div className="relative w-full max-w-[1000px] mx-auto">
       {/* 🟢 EXTRA AMPEL ÜBER DEM BRETT 🟢 */}
       <div className="mb-4 text-center">
         <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-sm px-6 py-3 rounded-full border border-amber-500/30">
@@ -102,7 +102,7 @@ export default function DamaBoard({
               // 🟢 AMPEL: Kann dieser Stein bewegt werden? (nur wenn du dran bist UND es dein Stein ist)
               const kannBewegtWerden = meinSpieler === aktuellerSpieler && stein?.spieler === meinSpieler
               
-              const steinSize = 'w-[7vw] h-[7vw] min-w-[38px] min-h-[38px] max-w-[75px] max-h-[75px]'
+              const steinSize = 'w-[6vw] h-[6vw] min-w-[35px] min-h-[35px] max-w-[70px] max-h-[70px]'
               return (
                 <div
                   key={`${rowIndex}-${colIndex}`}
