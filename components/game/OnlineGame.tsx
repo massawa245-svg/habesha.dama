@@ -21,7 +21,7 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false)
   const supabase = createClient()
 
-  // 🔥 NEUE Funktion: Prüft ob ein Spieler noch einen legalen Zug hat
+  // 🔥 Funktion: Prüft ob ein Spieler noch einen legalen Zug hat
   const hatSpielerZuege = (brett: Stein[][], spieler: 'schwarz' | 'weiss'): boolean => {
     // Durch alle Felder gehen
     for (let row = 0; row < 8; row++) {
@@ -87,7 +87,7 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
     if (schwarz === 0) return 'weiss'
     if (weiss === 0) return 'schwarz'
     
-    // 3. 🔥 NEU: Prüfe ob der Spieler, der dran ist, noch ziehen kann
+    // 3. Prüfe ob der Spieler, der dran ist, noch ziehen kann
     const spielerDran = currentTurn
     const kannZiehen = hatSpielerZuege(aktuellesBrett, spielerDran)
     
@@ -99,6 +99,32 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
     
     return null
   }
+
+  // 🔥 NEU: Prüfe nach jedem Spielerwechsel ob der Spieler noch ziehen kann
+  useEffect(() => {
+    if (winner || !brett) return
+    
+    const checkIfBlocked = async () => {
+      const spielerDran = currentTurn
+      const kannZiehen = hatSpielerZuege(brett, spielerDran)
+      
+      if (!kannZiehen) {
+        console.log(`🚫 ${spielerDran} kann nicht mehr ziehen!`)
+        const gameWinner = spielerDran === 'schwarz' ? 'weiss' : 'schwarz'
+        
+        setWinner(gameWinner)
+        setShowWinnerAnimation(true)
+        
+        // In Datenbank speichern
+        await supabase
+          .from('games')
+          .update({ status: 'finished', winner: gameWinner })
+          .eq('id', gameId)
+      }
+    }
+    
+    checkIfBlocked()
+  }, [currentTurn, brett, gameId, winner, supabase])
 
   useEffect(() => {
     const loadGame = async () => {
