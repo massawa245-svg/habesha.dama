@@ -17,10 +17,8 @@ export default function RaumErstellen({ userId, onRaumErstellt }: RaumErstellenP
   const createRaum = async () => {
     setLoading(true)
     
-    // Generiere eine zufällige Raum-ID (6 Zeichen)
     const newRaumId = Math.random().toString(36).substring(2, 8).toUpperCase()
     
-    // Erstelle ein Spiel im "waiting" Status
     const { data, error } = await supabase
       .from('games')
       .insert({
@@ -29,7 +27,7 @@ export default function RaumErstellen({ userId, onRaumErstellt }: RaumErstellenP
         status: 'waiting',
         current_turn: 'schwarz',
         board: JSON.stringify(initialesBrett()),
-        raum_id: newRaumId  // Du brauchst eine Spalte "raum_id" in der games-Tabelle!
+        raum_id: newRaumId
       })
       .select()
       .single()
