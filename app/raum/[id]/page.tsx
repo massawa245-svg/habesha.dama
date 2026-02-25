@@ -1,217 +1,125 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import LoginButton from '@/components/auth/LoginButton'
-import UserProfile from '@/components/auth/UserProfile'
-import Matchmaking from '@/components/game/Matchmaking'
-import RaumErstellen from '@/components/game/RaumErstellen'
 import OnlineGame from '@/components/game/OnlineGame'
-import { createClient, createGuestUser } from '@/lib/supabase/client'
-import type { User } from '@supabase/supabase-js'
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
-import { useTranslations } from 'next-intl'
 
-export default function Home() {
-  const t = useTranslations('Home')
-  const [user, setUser] = useState<User | null>(null)
-  const [isGuest, setIsGuest] = useState(false)
+export default function RaumPage() {
+  const params = useParams()
+  const router = useRouter()
+  const raumId = params.id as string
+  const [userId, setUserId] = useState<string | null>(null)
   const [gameId, setGameId] = useState<number | null>(null)
-  const [playerColor, setPlayerColor] = useState<'schwarz' | 'weiss' | null>(null)
-  const [showRaum, setShowRaum] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
+    const checkUserAndJoin = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        setLoading(false)
+        return
+      }
+      
+      setUserId(user.id)
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
+      const { data: game, error: gameError } = await supabase
+        .from('games')
+        .select('*')
+        .eq('raum_id', raumId)
+        .eq('status', 'waiting')
+        .single()
 
-    return () => subscription.unsubscribe()
-  }, [supabase])
+      if (gameError || !game) {
+        setError('Raum nicht gefunden oder bereits voll')
+        setLoading(false)
+        return
+      }
 
-  const handleGuestLogin = async () => {
-    const guestUser = await createGuestUser()
-    if (guestUser) {
-      setUser(guestUser)
-      setIsGuest(true)
+      const { error: joinError } = await supabase
+        .from('games')
+        .update({
+          player_white: user.id,
+          status: 'playing',
+          current_turn: 'schwarz'
+        })
+        .eq('id', game.id)
+
+      if (joinError) {
+        setError('Fehler beim Beitreten')
+        setLoading(false)
+        return
+      }
+
+      setGameId(game.id)
+      setLoading(false)
     }
-  }
 
-  // LANDING PAGE für nicht eingeloggte
-  if (!user) {
+    checkUserAndJoin()
+  }, [raumId, supabase])
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-20 left-10 w-64 h-64 bg-amber-500 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-600 rounded-full blur-3xl"></div>
-          </div>
-
-          {/* Navigation mit LanguageSwitcher */}
-          <nav className="relative z-10 flex justify-between items-center p-6 max-w-7xl mx-auto">
-            <div className="flex items-center gap-2">
-              <span className="text-3xl">🇪🇹</span>
-              <span className="text-2xl font-bold text-white">{t('title')}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <LanguageSwitcher />
-              <LoginButton />
-            </div>
-          </nav>
-
-          <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 md:py-32">
-            <div className="max-w-3xl">
-              <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-                <span className="text-amber-300">{t('title')}</span>
-              </h1>
-              <p className="text-xl md:text-2xl text-amber-100 mb-8">
-                {t('subtitle')}
-              </p>
-              
-              {/* Guest Mode Button */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                <button
-                  onClick={handleGuestLogin}
-                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-2"
-                >
-                  <span>🎮</span>
-                  {t('guestPlay')}
-                </button>
-                <LoginButton />
-              </div>
-
-              {/* Feature Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-amber-500/30">
-                  <div className="text-4xl mb-3">⚡</div>
-                  <h3 className="text-xl font-bold text-white mb-2">{t('features.realtime')}</h3>
-                  <p className="text-amber-200">{t('features.realtimeDesc')}</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-amber-500/30">
-                  <div className="text-4xl mb-3">🏆</div>
-                  <h3 className="text-xl font-bold text-white mb-2">{t('features.tournaments')}</h3>
-                  <p className="text-amber-200">{t('features.tournamentsDesc')}</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-amber-500/30">
-                  <div className="text-4xl mb-3">📱</div>
-                  <h3 className="text-xl font-bold text-white mb-2">{t('features.mobile')}</h3>
-                  <p className="text-amber-200">{t('features.mobileDesc')}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-amber-900 to-amber-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin text-5xl mb-4">⏳</div>
+          <p className="text-white text-xl">Werde in Raum eingeloggt...</p>
         </div>
-
-        {/* Features Section */}
-        <div id="features" className="py-20 px-6 max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-white text-center mb-12">
-            {t('why.title')}
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="flex gap-4">
-              <div className="text-3xl bg-amber-600/20 p-4 rounded-xl">🎯</div>
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">{t('why.rules')}</h3>
-                <p className="text-amber-200">{t('why.rulesDesc')}</p>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <div className="text-3xl bg-amber-600/20 p-4 rounded-xl">🤝</div>
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">{t('why.invite')}</h3>
-                <p className="text-amber-200">{t('why.inviteDesc')}</p>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <div className="text-3xl bg-amber-600/20 p-4 rounded-xl">⚡</div>
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">{t('why.nodownload')}</h3>
-                <p className="text-amber-200">{t('why.nodownloadDesc')}</p>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <div className="text-3xl bg-amber-600/20 p-4 rounded-xl">🆓</div>
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">{t('why.free')}</h3>
-                <p className="text-amber-200">{t('why.freeDesc')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <footer className="border-t border-amber-800/30 py-8 px-6 max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🇪🇹</span>
-              <span className="text-white">{t('title')}</span>
-            </div>
-            <div className="text-amber-300 text-sm">
-              © 2026 Habesha Dama. Alle Rechte vorbehalten.
-            </div>
-          </div>
-        </footer>
       </div>
     )
   }
 
-  // 🎮 GAME SECTION für eingeloggte User
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 flex flex-col items-center p-4">
-      <div className="w-full max-w-4xl">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">{t('title')}</h1>
-          <UserProfile />
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-900 to-amber-950 flex items-center justify-center">
+        <div className="bg-black/30 backdrop-blur-md p-8 rounded-2xl shadow-2xl text-center max-w-md">
+          <h1 className="text-3xl font-bold text-white mb-4">Raum beitreten</h1>
+          <p className="text-amber-200 mb-6">
+            Du wurdest zu einem Spiel eingeladen. Bitte melde dich an, um beizutreten.
+          </p>
+          <LoginButton />
         </div>
-
-        {!gameId ? (
-          <>
-            {!showRaum ? (
-              <div className="space-y-4">
-                <Matchmaking 
-                  userId={user.id}
-                  onGameFound={(id, color) => {
-                    setGameId(id)
-                    setPlayerColor(color)
-                  }}
-                />
-                <button
-                  onClick={() => setShowRaum(true)}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-4 rounded-xl text-xl font-bold hover:from-blue-500 hover:to-blue-400 transition-all"
-                >
-                  🏠 {t('createRoom')}
-                </button>
-              </div>
-            ) : (
-              <div>
-                <RaumErstellen
-                  userId={user.id}
-                  onRaumErstellt={(raumId) => {
-                    console.log('Raum erstellt:', raumId)
-                  }}
-                />
-                <button
-                  onClick={() => setShowRaum(false)}
-                  className="mt-4 text-amber-300 hover:text-amber-100 transition-colors"
-                >
-                  ← {t('back')}
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <OnlineGame 
-            gameId={gameId}
-            userId={user.id}
-            playerColor={playerColor!}
-          />
-        )}
       </div>
-    </main>
-  )
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-900 to-amber-950 flex items-center justify-center">
+        <div className="bg-black/30 backdrop-blur-md p-8 rounded-2xl shadow-2xl text-center max-w-md">
+          <div className="text-5xl mb-4">😢</div>
+          <h1 className="text-2xl font-bold text-white mb-4">{error}</h1>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Zur Startseite
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (gameId) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 flex flex-col items-center p-4">
+        <div className="w-full max-w-4xl">
+          <h1 className="text-3xl font-bold text-white mb-4 text-center">
+            Raum beigetreten! 🎉
+          </h1>
+          <OnlineGame
+            gameId={gameId}
+            userId={userId}
+            playerColor="weiss"
+          />
+        </div>
+      </main>
+    )
+  }
+
+  return null
 }
