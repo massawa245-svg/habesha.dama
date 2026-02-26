@@ -1,23 +1,80 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { initialesBrett } from '@/lib/game/logic'
 
 interface RaumErstellenProps {
   userId: string
   onRaumErstellt: (raumId: string) => void
+  onGameStarted?: (gameId: number) => void
 }
 
-export default function RaumErstellen({ userId, onRaumErstellt }: RaumErstellenProps) {
+export default function RaumErstellen({ userId, onRaumErstellt, onGameStarted }: RaumErstellenProps) {
   const [raumId, setRaumId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [gameStarted, setGameStarted] = useState(false)
   const supabase = createClient()
+
+  // Auf Gegner warten
+  useEffect(() => {
+    if (!raumId) return
+
+    console.log('👀 Warte auf Gegner in Raum:', raumId)
+
+    const subscription = supabase
+      .channel(`raum-${raumId}-${Date.now()}`, {
+        config: {
+          broadcast: { self: true },
+          presence: { key: '' }
+        }
+      })
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'games',
+          filter: `raum_id=eq.${raumId}`
+        },
+        (payload) => {
+          console.log('📨 UPDATE ERHALTEN!', payload)
+          console.log('📨 Payload new:', payload.new)
+          console.log('📨 Payload old:', payload.old)
+          console.log('📨 Event type:', payload.eventType)
+          
+          if (payload.new.status === 'playing') {
+            console.log('🎮 Gegner beigetreten! Starte Spiel...')
+            console.log('📨 Game ID:', payload.new.id)
+            
+            if (onGameStarted && payload.new.id) {
+              onGameStarted(payload.new.id)
+            }
+            
+            setGameStarted(true)
+          } else {
+            console.log('⏳ Status ist noch:', payload.new.status)
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Channel erfolgreich verbunden für Raum:', raumId)
+        }
+      })
+
+    return () => {
+      console.log('👋 Unsubscribe von Raum:', raumId)
+      subscription.unsubscribe()
+    }
+  }, [raumId, supabase, onGameStarted])
 
   const createRaum = async () => {
     setLoading(true)
     
     const newRaumId = Math.random().toString(36).substring(2, 8).toUpperCase()
+    console.log('🏗️ Erstelle Raum mit ID:', newRaumId)
     
     const { data, error } = await supabase
       .from('games')
@@ -33,11 +90,12 @@ export default function RaumErstellen({ userId, onRaumErstellt }: RaumErstellenP
       .single()
 
     if (error) {
-      console.error('Fehler beim Erstellen des Raums:', error)
+      console.error('❌ Fehler beim Erstellen des Raums:', error)
       setLoading(false)
       return
     }
 
+    console.log('✅ Raum erfolgreich erstellt:', data)
     setRaumId(newRaumId)
     setLoading(false)
     onRaumErstellt(newRaumId)
@@ -47,6 +105,15 @@ export default function RaumErstellen({ userId, onRaumErstellt }: RaumErstellenP
     const link = `${window.location.origin}/raum/${raumId}`
     navigator.clipboard.writeText(link)
     alert('Link kopiert!')
+  }
+
+  if (gameStarted) {
+    return (
+      <div className="bg-green-800/50 p-6 rounded-xl text-center">
+        <p className="text-white text-2xl mb-4">🎮 Gegner gefunden!</p>
+        <p className="text-amber-300">Spiel startet...</p>
+      </div>
+    )
   }
 
   if (raumId) {

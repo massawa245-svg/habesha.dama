@@ -21,6 +21,7 @@ export default function Home() {
   const [gameId, setGameId] = useState<number | null>(null)
   const [playerColor, setPlayerColor] = useState<'schwarz' | 'weiss' | null>(null)
   const [showRaum, setShowRaum] = useState(false)
+  const [aktuellerRaumId, setAktuellerRaumId] = useState<string | null>(null)
   const supabase = createClient()
 
   // Sprache aus Cookie lesen
@@ -62,6 +63,42 @@ export default function Home() {
 
     return () => subscription.unsubscribe()
   }, [supabase])
+
+  // 🔥 Auf Raum-Updates hören (KORRIGIERT!)
+  useEffect(() => {
+    if (!aktuellerRaumId) return
+
+    console.log('👀 Höre auf Raum:', aktuellerRaumId)
+
+    const subscription = supabase
+      .channel(`raum-${aktuellerRaumId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'games',
+          filter: `raum_id=eq.${aktuellerRaumId}`
+        },
+        (payload) => {
+          console.log('👀 Raum-Update erhalten:', payload.new)
+          
+          // Wenn Status auf 'playing' wechselt, ist Gegner da!
+          if (payload.new.status === 'playing') {
+            console.log('🎮 Gegner beigetreten! Starte Spiel...')
+            setGameId(payload.new.id)
+            setPlayerColor('schwarz')
+            setShowRaum(false)
+            setAktuellerRaumId(null)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [aktuellerRaumId, supabase])
 
   const handleGuestLogin = async () => {
     const guestUser = await createGuestUser()
@@ -260,10 +297,14 @@ if (!user) {
                   userId={user.id}
                   onRaumErstellt={(raumId) => {
                     console.log('Raum erstellt:', raumId)
+                    setAktuellerRaumId(raumId)
                   }}
                 />
                 <button
-                  onClick={() => setShowRaum(false)}
+                  onClick={() => {
+                    setShowRaum(false)
+                    setAktuellerRaumId(null)
+                  }}
                   className="mt-4 text-amber-300 hover:text-amber-100 transition-colors text-sm sm:text-base"
                 >
                   ← {t('back')}

@@ -18,6 +18,7 @@ export default function RaumPage() {
 
   useEffect(() => {
     const checkUserAndJoin = async () => {
+      // 1. Prüfe ob User eingeloggt ist
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
@@ -27,6 +28,8 @@ export default function RaumPage() {
       
       setUserId(user.id)
 
+      // 2. Suche Raum mit dieser ID
+      console.log('🔍 Suche Raum:', raumId)
       const { data: game, error: gameError } = await supabase
         .from('games')
         .select('*')
@@ -35,11 +38,15 @@ export default function RaumPage() {
         .single()
 
       if (gameError || !game) {
+        console.error('Raum nicht gefunden:', gameError)
         setError('Raum nicht gefunden oder bereits voll')
         setLoading(false)
         return
       }
 
+      console.log('✅ Raum gefunden:', game)
+
+      // 3. ALS WEISS BEITRETEN (und Status auf playing setzen)
       const { error: joinError } = await supabase
         .from('games')
         .update({
@@ -50,11 +57,15 @@ export default function RaumPage() {
         .eq('id', game.id)
 
       if (joinError) {
+        console.error('Fehler beim Beitreten:', joinError)
         setError('Fehler beim Beitreten')
         setLoading(false)
         return
       }
+      console.log('🔍 Suche Raum mit raum_id:', raumId)
+      console.log('📊 Aktuelle Spiele in DB:', await supabase.from('games').select('id, raum_id, status'))
 
+      console.log('🎮 Raum beigetreten, Spiel startet:', game.id)
       setGameId(game.id)
       setLoading(false)
     }
