@@ -2,7 +2,12 @@
 
 import { useState } from 'react'
 import type { Position, Player, Stein } from '@/lib/game/types'
-import { istGueltigerZug, kannFressen, hatWeitereFresszuege } from '@/lib/game/logic'
+import { 
+  istGueltigerZug, 
+  kannFressen, 
+  hatWeitereFresszuege,
+  hatFressmoeglichkeit  // 🔥 NEU importiert!
+} from '@/lib/game/logic'
 
 interface DamaBoardProps {
   brett: Stein[][]
@@ -29,6 +34,9 @@ export default function DamaBoard({
     
     const stein = brett[row][col]
     
+    // 🔥 FRESSPFLICHT prüfen
+    const mussFressen = hatFressmoeglichkeit(brett, meinSpieler)
+    
     if (selectedPos) {
       const von = selectedPos
       const nach = { row, col }
@@ -38,6 +46,13 @@ export default function DamaBoard({
       
       const istFressen = kannFressen(brett, von, nach, meinSpieler, ausgewaehlterStein.istKoenig)
       const istNormalerZug = istGueltigerZug(brett, von, nach, meinSpieler, ausgewaehlterStein.istKoenig)
+      
+      // 🔥 FRESSPFLICHT: Wenn Spieler fressen muss, aber keinen Fresszug macht
+      if (mussFressen && !istFressen) {
+        alert("Du MUSST fressen! Es gibt eine Fressmöglichkeit.")
+        setSelectedPos(null)
+        return
+      }
       
       if (istFressen || istNormalerZug) {
         onZug(von, nach)
@@ -56,6 +71,44 @@ export default function DamaBoard({
         }
       }
     } else if (stein && stein.spieler === meinSpieler) {
+      // 🔥 FRESSPFLICHT: Beim Auswählen prüfen ob dieser Stein überhaupt fressen KANN
+      if (mussFressen) {
+        // Prüfe ob der ausgewählte Stein fressen KANN
+        let kannDieserSteinFressen = false
+        
+        // Vereinfachte Prüfung: Schau ob dieser Stein eine Fressmöglichkeit hat
+        const richtungen = [
+          { row: -2, col: -2 }, { row: -2, col: 2 },
+          { row: 2, col: -2 }, { row: 2, col: 2 }
+        ]
+        
+        for (const dir of richtungen) {
+          const nachRow = row + dir.row
+          const nachCol = col + dir.col
+          
+          if (nachRow >= 0 && nachRow < 8 && nachCol >= 0 && nachCol < 8) {
+            if (brett[nachRow][nachCol] === null) {
+              const mittelRow = row + (dir.row > 0 ? 1 : -1)
+              const mittelCol = col + (dir.col > 0 ? 1 : -1)
+              const gegner = brett[mittelRow]?.[mittelCol]
+              
+              if (gegner && gegner.spieler !== meinSpieler) {
+                // Normale Steine können keine Könige fressen
+                if (!stein.istKoenig && gegner.istKoenig) continue
+                kannDieserSteinFressen = true
+                break
+              }
+            }
+          }
+        }
+        
+        // Wenn der Spieler fressen muss, aber dieser Stein nicht fressen KANN
+        if (!kannDieserSteinFressen) {
+          alert("Du MUSST mit einem Stein fressen, der eine Fressmöglichkeit hat!")
+          return
+        }
+      }
+      
       setSelectedPos({ row, col })
     }
   }
@@ -63,7 +116,7 @@ export default function DamaBoard({
   const istDunklesFeld = (row: number, col: number) => (row + col) % 2 !== 0
 
   return (
-   <div className="relative w-full max-w-[1000px] mx-auto">
+    <div className="relative w-full max-w-[1000px] mx-auto">
       {/* 🟢 EXTRA AMPEL ÜBER DEM BRETT 🟢 */}
       <div className="mb-4 text-center">
         <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-sm px-6 py-3 rounded-full border border-amber-500/30">
@@ -102,8 +155,9 @@ export default function DamaBoard({
               // 🟢 AMPEL: Kann dieser Stein bewegt werden? (nur wenn du dran bist UND es dein Stein ist)
               const kannBewegtWerden = meinSpieler === aktuellerSpieler && stein?.spieler === meinSpieler
               
-        // Stein viel kleiner machen, damit er ins Feld passt
+              // Stein viel kleiner machen, damit er ins Feld passt
               const steinSize = 'w-[90%] h-[90%]'  // Perfekte Größe
+              
               return (
                 <div
                   key={`${rowIndex}-${colIndex}`}

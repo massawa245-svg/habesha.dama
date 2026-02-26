@@ -39,8 +39,9 @@ export const kannFressen = (
   const gegner = brett[mittelRow]?.[mittelCol];
   
   if (!gegner || gegner.spieler === spieler) return false;
+  
   // 👑 NEUE REGEL: Normaler Stein kann König nicht fressen!
-if (!istKoenig && gegner.istKoenig) return false;
+  if (!istKoenig && gegner.istKoenig) return false;
   
   if (!istKoenig) {
     if (spieler === 'schwarz' && rowDiff <= 0) return false;
@@ -100,4 +101,61 @@ export const initialesBrett = (): Stein[][] => {
   }
   
   return neuesBrett;
+};
+
+// 🔥 VERBESSERTE Funktion: Prüft ob der Spieler überhaupt fressen KANN (mit Richtungs-Prüfung!)
+export const hatFressmoeglichkeit = (
+  brett: Stein[][],
+  spieler: Player
+): boolean => {
+  // Durch alle Felder gehen
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const stein = brett[row][col];
+      
+      // Nur Steine des aktuellen Spielers prüfen
+      if (stein && stein.spieler === spieler) {
+        
+        // Alle 4 diagonalen Richtungen für FRESSEN prüfen (2 Felder)
+        const richtungen = [
+          { row: -2, col: -2 }, { row: -2, col: 2 },
+          { row: 2, col: -2 }, { row: 2, col: 2 }
+        ];
+        
+        for (const dir of richtungen) {
+          const nachRow = row + dir.row;
+          const nachCol = col + dir.col;
+          
+          // Ist das Ziel innerhalb des Bretts?
+          if (nachRow >= 0 && nachRow < 8 && nachCol >= 0 && nachCol < 8) {
+            
+            // Ist das Ziel leer?
+            if (brett[nachRow][nachCol] === null) {
+              
+              // Ist ein Gegner in der Mitte?
+              const mittelRow = row + (dir.row > 0 ? 1 : -1);
+              const mittelCol = col + (dir.col > 0 ? 1 : -1);
+              const gegner = brett[mittelRow]?.[mittelCol];
+              
+              if (gegner && gegner.spieler !== spieler) {
+                
+                // 🚨 WICHTIG: Richtung prüfen für normale Steine!
+                if (!stein.istKoenig) {
+                  // Normale Steine: nur vorwärts
+                  if (spieler === 'schwarz' && dir.row <= 0) continue; // Schwarz muss runter (+)
+                  if (spieler === 'weiss' && dir.row >= 0) continue;   // Weiß muss rauf (-)
+                }
+                
+                // 👑 Normale Steine können keine Könige fressen
+                if (!stein.istKoenig && gegner.istKoenig) continue;
+                
+                return true; // Es gibt eine Fressmöglichkeit!
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return false;
 };
