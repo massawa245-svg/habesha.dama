@@ -5,6 +5,49 @@ import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
+export const metadata = {
+  title: 'Habesha Dama - Traditionelles Äthiopisches Brettspiel online',
+  description: 'Spiele Habesha Dama kostenlos online. Originale Regeln (S W - W - W), Echtzeit-Multiplayer, Räume für Freunde. Kein Download nötig! Jetzt gegen Freunde spielen.',
+  keywords: 'Habesha Dama, Äthiopisches Dame, Dama online, Eritreisches Spiel, traditionelles Spiel, Multiplayer, Brettspiel, kostenlos, S W W W Regel',
+  authors: [{ name: 'Habesha Dama Team' }],
+  openGraph: {
+    title: 'Habesha Dama - Das originale Habesha Dama online',
+    description: 'Spiele das traditionelle Habesha Dama mit den echten Regeln. Kostenlos, einfach und direkt im Browser.',
+    url: 'https://habesha-dama.com',
+    siteName: 'Habesha Dama',
+    images: [
+      {
+        url: 'https://habesha-dama.com/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Habesha Dama Spielbrett',
+      },
+    ],
+    locale: 'de_DE',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Habesha Dama - Traditionelles Äthiopisches Brettspiel',
+    description: 'Spiele Habesha Dama online mit Freunden. Originale Regeln, kostenlos, kein Download.',
+    images: ['https://habesha-dama.com/twitter-image.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  alternates: {
+    languages: {
+      'de': 'https://habesha-dama.com/de',
+      'en': 'https://habesha-dama.com/en',
+    },
+  },
+}
+
 export default async function RootLayout({
   children,
 }: {
@@ -15,6 +58,10 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+      </head>
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages}>
           {children}
