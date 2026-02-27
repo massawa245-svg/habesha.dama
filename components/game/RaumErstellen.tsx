@@ -21,15 +21,14 @@ export default function RaumErstellen({ userId, onRaumErstellt, onGameStarted }:
     if (!raumId) return
 
     console.log('👀 Warte auf Gegner in Raum:', raumId)
-
-    const subscription = supabase
-      .channel(`raum-${raumId}-${Date.now()}`, {
-        config: {
-          broadcast: { self: true },
-          presence: { key: '' }
-        }
-      })
-      .on(
+     const subscription = supabase
+  .channel(`raum-${raumId}`, {
+    config: {
+      broadcast: { self: true },
+      presence: { key: userId } // optional aber besser
+    }
+  })
+  .on(
         'postgres_changes',
         {
           event: 'UPDATE',
