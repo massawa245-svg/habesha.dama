@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import LoginButton from '@/components/auth/LoginButton'
 import OnlineGame from '@/components/game/OnlineGame'
 
 export default function RaumPage() {
@@ -19,16 +18,27 @@ export default function RaumPage() {
   useEffect(() => {
     const checkUserAndJoin = async () => {
       // 1. Prüfe ob User eingeloggt ist
-      const { data: { user } } = await supabase.auth.getUser()
+      let { data: { user } } = await supabase.auth.getUser()
       
+      // 2. Wenn nicht, als Gast einloggen!
       if (!user) {
-        setLoading(false)
-        return
+        console.log('👤 Kein User, erstelle Gast...')
+        const { data: guestData, error: guestError } = await supabase.auth.signInAnonymously()
+        
+        if (guestError || !guestData?.user) {
+          console.error('❌ Gast-Login fehlgeschlagen:', guestError)
+          setError('Konnte keinen Gast-Account erstellen')
+          setLoading(false)
+          return
+        }
+        
+        user = guestData.user
+        console.log('✅ Gast-Account erstellt:', user.id)
       }
       
       setUserId(user.id)
 
-      // 2. Suche Raum mit dieser ID
+      // 3. Raum suchen
       console.log('🔍 Suche Raum:', raumId)
       const { data: game, error: gameError } = await supabase
         .from('games')
@@ -38,7 +48,7 @@ export default function RaumPage() {
         .single()
 
       if (gameError || !game) {
-        console.error('Raum nicht gefunden:', gameError)
+        console.error('❌ Raum nicht gefunden:', gameError)
         setError('Raum nicht gefunden oder bereits voll')
         setLoading(false)
         return
@@ -46,7 +56,7 @@ export default function RaumPage() {
 
       console.log('✅ Raum gefunden:', game)
 
-      // 3. ALS WEISS BEITRETEN (und Status auf playing setzen)
+      // 4. Als Weiß beitreten
       const { error: joinError } = await supabase
         .from('games')
         .update({
@@ -57,13 +67,11 @@ export default function RaumPage() {
         .eq('id', game.id)
 
       if (joinError) {
-        console.error('Fehler beim Beitreten:', joinError)
+        console.error('❌ Fehler beim Beitreten:', joinError)
         setError('Fehler beim Beitreten')
         setLoading(false)
         return
       }
-      console.log('🔍 Suche Raum mit raum_id:', raumId)
-      console.log('📊 Aktuelle Spiele in DB:', await supabase.from('games').select('id, raum_id, status'))
 
       console.log('🎮 Raum beigetreten, Spiel startet:', game.id)
       setGameId(game.id)
@@ -79,20 +87,6 @@ export default function RaumPage() {
         <div className="text-center">
           <div className="animate-spin text-5xl mb-4">⏳</div>
           <p className="text-white text-xl">Werde in Raum eingeloggt...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!userId) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-900 to-amber-950 flex items-center justify-center">
-        <div className="bg-black/30 backdrop-blur-md p-8 rounded-2xl shadow-2xl text-center max-w-md">
-          <h1 className="text-3xl font-bold text-white mb-4">Raum beitreten</h1>
-          <p className="text-amber-200 mb-6">
-            Du wurdest zu einem Spiel eingeladen. Bitte melde dich an, um beizutreten.
-          </p>
-          <LoginButton />
         </div>
       </div>
     )
@@ -115,13 +109,10 @@ export default function RaumPage() {
     )
   }
 
-  if (gameId) {
+  if (gameId && userId) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 flex flex-col items-center p-4">
         <div className="w-full max-w-4xl">
-          <h1 className="text-3xl font-bold text-white mb-4 text-center">
-            Raum beigetreten! 🎉
-          </h1>
           <OnlineGame
             gameId={gameId}
             userId={userId}
