@@ -258,41 +258,72 @@ if (!user) {
    )
   }
 
-  // 🎮 GAME SECTION für eingeloggte User
+   // 🎮 GAME SECTION für eingeloggte User
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 flex flex-col items-center p-4">
       <div className="w-full max-w-4xl">
-        {/* Header mit UserProfile und Logout */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white text-center sm:text-left">
-            Habesha Dama 🇪🇹
-          </h1>
-          <div className="flex items-center gap-3">
-            <UserProfile />
-            <LogoutButton />
+        {/* Header mit UserProfile und Logout - MODERNISIERT */}
+        <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl mb-8 border border-amber-500/30">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center shadow-xl">
+                <span className="text-2xl animate-bounce">🇪🇹</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                Habesha Dama
+              </h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <UserProfile />
+              <LogoutButton />
+            </div>
           </div>
         </div>
 
         {!gameId ? (
           <>
             {!showRaum ? (
-              <div className="space-y-4">
-                <Matchmaking 
-                  userId={user.id}
-                  onGameFound={(id, color) => {
-                    setGameId(id)
-                    setPlayerColor(color)
-                  }}
-                />
-                <button
-                  onClick={() => setShowRaum(true)}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-4 rounded-xl text-base sm:text-xl font-bold hover:from-blue-500 hover:to-blue-400 transition-all"
-                >
-                  🏠 {t('createRoom')}
-                </button>
+              <div className="space-y-6">
+                {/* GEGNER SUCHEN - JETZT RICHTIG GROß */}
+                <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
+                  <h2 className="text-2xl text-amber-300 mb-4 text-center">Spiel starten</h2>
+                  <Matchmaking 
+                    userId={user.id}
+                    onGameFound={(id, color) => {
+                      setGameId(id)
+                      setPlayerColor(color)
+                    }}
+                  />
+                </div>
+
+                {/* RAUM ERSTELLEN - GLEICHE GRÖßE */}
+                <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
+                  <h2 className="text-2xl text-amber-300 mb-4 text-center">Mit Freunden spielen</h2>
+                  <button
+                    onClick={() => setShowRaum(true)}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500 
+                               hover:from-blue-500 hover:to-blue-400 
+                               text-white text-xl sm:text-2xl font-bold 
+                               px-8 py-6 rounded-xl
+                               shadow-xl hover:shadow-2xl
+                               transform hover:scale-[1.02] transition-all
+                               border-2 border-blue-400
+                               flex items-center justify-center gap-4
+                               min-h-[80px]"
+                  >
+                    <span className="text-3xl">🏠</span>
+                    <span>{t('createRoom')}</span>
+                    <span className="text-2xl opacity-60">→</span>
+                  </button>
+                </div>
+
+                {/* KLEINE INFO */}
+                <div className="text-center text-amber-300/70 text-sm mt-4">
+                  ⭐ Premium-Features bald verfügbar
+                </div>
               </div>
             ) : (
-              <div>
+              <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
                 <RaumErstellen
                   userId={user.id}
                   onRaumErstellt={(raumId) => {
@@ -305,7 +336,10 @@ if (!user) {
                     setShowRaum(false)
                     setAktuellerRaumId(null)
                   }}
-                  className="mt-4 text-amber-300 hover:text-amber-100 transition-colors text-sm sm:text-base"
+                  className="mt-4 w-full bg-gray-600/50 hover:bg-gray-600/70 
+                             text-white px-6 py-4 rounded-xl
+                             transition-all flex items-center justify-center gap-2
+                             border border-gray-500/30"
                 >
                   ← {t('back')}
                 </button>

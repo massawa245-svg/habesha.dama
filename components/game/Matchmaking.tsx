@@ -90,22 +90,32 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
     setSearching(false)
   }
 
-  return (
-    <div className="bg-amber-800/50 p-8 rounded-xl text-center max-w-md mx-auto">
+    return (
+    <div className="w-full">
       {!searching ? (
         <button
           onClick={startSearch}
-          className="bg-green-600 text-white px-8 py-4 rounded-lg text-xl hover:bg-green-700 transition-colors w-full"
+          className="w-full bg-gradient-to-r from-green-600 to-green-500 
+                     hover:from-green-500 hover:to-green-400 
+                     text-white text-xl sm:text-2xl font-bold 
+                     px-8 py-6 rounded-xl
+                     shadow-xl hover:shadow-2xl
+                     transform hover:scale-[1.02] transition-all
+                     border-2 border-green-400
+                     flex items-center justify-center gap-4
+                     min-h-[80px]"
         >
-          🔍 {t('findOpponent')}
+          <span className="text-3xl">⚔️</span>
+          <span>{t('findOpponent')}</span>
+          <span className="text-2xl opacity-60">→</span>
         </button>
       ) : (
-        <div>
+        <div className="bg-amber-800/30 p-8 rounded-xl text-center border border-amber-500/30">
           <p className="text-white text-xl mb-4">{t('searching')}</p>
-          <div className="animate-spin text-5xl mb-6">⏳</div>
+          <div className="animate-spin text-5xl mb-6 text-amber-300">⏳</div>
           <button
             onClick={cancelSearch}
-            className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors"
+            className="bg-red-600/50 hover:bg-red-700/70 text-white px-6 py-3 rounded-lg transition-all border border-red-400/30"
           >
             {t('cancel')}
           </button>
