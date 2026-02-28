@@ -6,6 +6,7 @@ import UserProfile from '@/components/auth/UserProfile'
 import Matchmaking from '@/components/game/Matchmaking'
 import RaumErstellen from '@/components/game/RaumErstellen'
 import OnlineGame from '@/components/game/OnlineGame'
+import BotGame from '@/components/game/BotGame' // 🤖 NEU: BotGame importieren!
 import { createClient, createGuestUser } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
@@ -22,6 +23,7 @@ export default function Home() {
   const [playerColor, setPlayerColor] = useState<'schwarz' | 'weiss' | null>(null)
   const [showRaum, setShowRaum] = useState(false)
   const [aktuellerRaumId, setAktuellerRaumId] = useState<string | null>(null)
+  const [isBotGame, setIsBotGame] = useState(false) // 🤖 NEU: Bot-Erkennung
   const supabase = createClient()
 
   // Sprache aus Cookie lesen
@@ -64,7 +66,7 @@ export default function Home() {
     return () => subscription.unsubscribe()
   }, [supabase])
 
-  // 🔥 VERBESSERT: Auf Raum-Updates hören
+  // 🔥 Auf Raum-Updates hören
   useEffect(() => {
     if (!aktuellerRaumId) return
 
@@ -88,6 +90,7 @@ export default function Home() {
             console.log('🎮 Gegner beigetreten! Starte Spiel...')
             setGameId(payload.new.id)
             setPlayerColor('schwarz') // Host ist immer schwarz
+            setIsBotGame(false) // Normales Spiel
             setShowRaum(false)
             setAktuellerRaumId(null)
           }
@@ -108,13 +111,22 @@ export default function Home() {
     }
   }
 
-  // In app/page.tsx - diese Funktion finden und ersetzen:
-   const handleGameStarted = (gameId: number, spielerFarbe: 'schwarz' | 'weiss') => {
-   console.log('🎮 handleGameStarted aufgerufen:', { gameId, spielerFarbe })
-   setGameId(gameId)
-   setPlayerColor(spielerFarbe)  // ← Jetzt mit der übergebenen Farbe!
-   setShowRaum(false)
-   setAktuellerRaumId(null)
+  // Raum-Spiel starten
+  const handleGameStarted = (gameId: number, spielerFarbe: 'schwarz' | 'weiss') => {
+    console.log('🎮 handleGameStarted aufgerufen:', { gameId, spielerFarbe })
+    setGameId(gameId)
+    setPlayerColor(spielerFarbe)
+    setIsBotGame(false) // Normales Spiel
+    setShowRaum(false)
+    setAktuellerRaumId(null)
+  }
+
+  // 🤖 NEU: Matchmaking mit Bot-Unterstützung
+  const handleMatchmakingFound = (id: number, color: 'schwarz' | 'weiss', isBot?: boolean) => {
+    console.log('🎯 Matchmaking gefunden:', { id, color, isBot })
+    setGameId(id)
+    setPlayerColor(color)
+    setIsBotGame(isBot || false)
   }
 
   // Nicht rendern bis gemountet
@@ -293,16 +305,12 @@ if (!user) {
           <>
             {!showRaum ? (
               <div className="space-y-6">
-                {/* GEGNER SUCHEN */}
+                {/* GEGNER SUCHEN - JETZT MIT BOT-UNTERSTÜTZUNG */}
                 <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
                   <h2 className="text-2xl text-amber-300 mb-4 text-center">Spiel starten</h2>
                   <Matchmaking 
                     userId={user.id}
-                    onGameFound={(id, color) => {
-                      console.log('🎯 Matchmaking gefunden:', { id, color })
-                      setGameId(id)
-                      setPlayerColor(color)
-                    }}
+                    onGameFound={handleMatchmakingFound} // 🤖 NEU: Mit Bot-Erkennung
                   />
                 </div>
 
@@ -334,14 +342,13 @@ if (!user) {
               </div>
             ) : (
               <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
-                {/* 🔥 HIER IST DER WICHTIGE TEIL: onGameStarted Callback */}
                 <RaumErstellen
                   userId={user.id}
                   onRaumErstellt={(raumId) => {
                     console.log('🏠 Raum erstellt:', raumId)
                     setAktuellerRaumId(raumId)
                   }}
-                  onGameStarted={handleGameStarted}  // 🔥 NEU: Callback für Spielstart!
+                  onGameStarted={handleGameStarted}
                 />
                 <button
                   onClick={() => {
@@ -365,18 +372,29 @@ if (!user) {
               onClick={() => {
                 setGameId(null)
                 setPlayerColor(null)
+                setIsBotGame(false)
               }}
               className="text-amber-300 hover:text-white transition-colors flex items-center gap-2"
             >
               ← Zurück zum Menü
             </button>
             
-            <OnlineGame 
-              key={gameId} // 🔥 WICHTIG: Erzwingt Neu-Rendering
-              gameId={gameId}
-              userId={user.id}
-              playerColor={playerColor!}
-            />
+            {/* 🤖 Entscheide ob BotGame oder OnlineGame */}
+            {isBotGame ? (
+              <BotGame 
+                key={`bot-${gameId}`}
+                gameId={gameId}
+                userId={user.id}
+                playerColor={playerColor!}
+              />
+            ) : (
+              <OnlineGame 
+                key={`online-${gameId}`}
+                gameId={gameId}
+                userId={user.id}
+                playerColor={playerColor!}
+              />
+            )}
           </div>
         )}
       </div>
