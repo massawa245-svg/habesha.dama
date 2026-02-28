@@ -108,13 +108,13 @@ export default function Home() {
     }
   }
 
-  // 🔥 NEU: Callback für RaumErstellen onGameStarted
-  const handleGameStarted = (gameId: number, spielerFarbe: 'schwarz' | 'weiss') => {
-    console.log('🎮 handleGameStarted aufgerufen:', { gameId, spielerFarbe })
-    setGameId(gameId)
-    setPlayerColor(spielerFarbe)
-    setShowRaum(false)
-    setAktuellerRaumId(null)
+  // In app/page.tsx - diese Funktion finden und ersetzen:
+   const handleGameStarted = (gameId: number, spielerFarbe: 'schwarz' | 'weiss') => {
+   console.log('🎮 handleGameStarted aufgerufen:', { gameId, spielerFarbe })
+   setGameId(gameId)
+   setPlayerColor(spielerFarbe)  // ← Jetzt mit der übergebenen Farbe!
+   setShowRaum(false)
+   setAktuellerRaumId(null)
   }
 
   // Nicht rendern bis gemountet
