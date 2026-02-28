@@ -7,7 +7,7 @@ import { initialesBrett } from '@/lib/game/logic'
 interface RaumErstellenProps {
   userId: string
   onRaumErstellt: (raumId: string) => void
-  onGameStarted?: (gameId: number) => void
+  onGameStarted?: (gameId: number, playerColor: 'schwarz' | 'weiss') => void  // ✅ Korrekt!
 }
 
 export default function RaumErstellen({ userId, onRaumErstellt, onGameStarted }: RaumErstellenProps) {
@@ -16,7 +16,7 @@ export default function RaumErstellen({ userId, onRaumErstellt, onGameStarted }:
   const [gameStarted, setGameStarted] = useState(false)
   const supabase = createClient()
 
-  // 🔥 VERBESSERT: Auf Gegner warten (Realtime + Polling als Fallback)
+  // 🔥 Auf Gegner warten
   useEffect(() => {
     if (!raumId) return
 
@@ -42,9 +42,9 @@ export default function RaumErstellen({ userId, onRaumErstellt, onGameStarted }:
             
             setGameStarted(true)
             
-            // 🔥 WICHTIG: onGameStarted aufrufen und dann Komponente schließen
+            // 🔥 Realtime Callback
             if (onGameStarted && payload.new.id) {
-              onGameStarted(payload.new.id)
+              onGameStarted(payload.new.id, 'schwarz')  // ✅ Farbe mitgeben!
             }
           }
         }
@@ -53,44 +53,43 @@ export default function RaumErstellen({ userId, onRaumErstellt, onGameStarted }:
         console.log('📡 Realtime Status:', status)
       })
 
-    // In RaumErstellen.tsx - ersetze den Polling-Teil:
+    // 2. 🔥 POLLING FALLBACK (ca. Zeile 60-85)
+    const pollInterval = setInterval(async () => {
+      try {
+        console.log('⏳ Polling: Prüfe Raum-Status...')
+        
+        const { data, error } = await supabase
+          .from('games')
+          .select('id, status')
+          .eq('raum_id', raumId)
+          .single()
 
-     // 2. 🔥 POLLING FALLBACK
-     const pollInterval = setInterval(async () => {
-     try {
-     console.log('⏳ Polling: Prüfe Raum-Status...')
-    
-     const { data, error } = await supabase
-      .from('games')
-      .select('id, status')
-      .eq('raum_id', raumId)
-      .single()
+        if (error) {
+          console.error('❌ Polling Fehler:', error)
+          return
+        }
 
-    if (error) {
-      console.error('❌ Polling Fehler:', error)
-      return
-    }
-
-    if (data?.status === 'playing') {
-      console.log('🎮 Gegner beigetreten! (Polling)')
-      console.log('📨 Game ID:', data.id)
-      
-      // 🔥 WICHTIG: Zuerst alles stoppen!
-      clearInterval(pollInterval)
-      subscription.unsubscribe()
-      
-      // Dann erst Callback aufrufen
-      if (onGameStarted && data.id) {
-        console.log('🔥 onGameStarted wird aufgerufen mit:', data.id)
-        onGameStarted(data.id, 'schwarz')  // Farbe mitgeben!
+        // ⚠️ HIER IST DIE KORREKTE STELLE (ca. Zeile 75-85)
+        if (data?.status === 'playing') {
+          console.log('🎮 Gegner beigetreten! (Polling)')
+          console.log('📨 Game ID:', data.id)
+          
+          // 🔥 WICHTIG: Alles stoppen!
+          clearInterval(pollInterval)
+          subscription.unsubscribe()
+          
+          // 🔥 Callback mit Farbe aufrufen!
+          if (onGameStarted && data.id) {
+            console.log('🔥 onGameStarted wird aufgerufen mit:', data.id)
+            onGameStarted(data.id, 'schwarz')  // ✅ Farbe MITgeben!
+          }
+          
+          setGameStarted(true)
+        }
+      } catch (err) {
+        console.error('❌ Polling Exception:', err)
       }
-      
-      setGameStarted(true)
-      }
-    } catch (err) {
-    console.error('❌ Polling Exception:', err)
-    }
-     }, 2000)
+    }, 2000)
 
     // Cleanup
     return () => {
@@ -151,8 +150,7 @@ export default function RaumErstellen({ userId, onRaumErstellt, onGameStarted }:
     alert('✅ Link kopiert!')
   }
 
-  // 🔥 WICHTIG: Wenn gameStarted true ist, zeige GAR NICHTS an!
-  // Die Parent-Komponente (page.tsx) zeigt dann OnlineGame
+  // 🔥 Wenn Spiel gestartet, nichts anzeigen
   if (gameStarted) {
     console.log('🎮 Spiel gestartet, RaumErstellen wird ausgeblendet')
     return null
