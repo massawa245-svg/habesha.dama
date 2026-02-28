@@ -64,7 +64,7 @@ export default function Home() {
     return () => subscription.unsubscribe()
   }, [supabase])
 
-  // 🔥 Auf Raum-Updates hören (KORRIGIERT!)
+  // 🔥 VERBESSERT: Auf Raum-Updates hören
   useEffect(() => {
     if (!aktuellerRaumId) return
 
@@ -87,7 +87,7 @@ export default function Home() {
           if (payload.new.status === 'playing') {
             console.log('🎮 Gegner beigetreten! Starte Spiel...')
             setGameId(payload.new.id)
-            setPlayerColor('schwarz')
+            setPlayerColor('schwarz') // Host ist immer schwarz
             setShowRaum(false)
             setAktuellerRaumId(null)
           }
@@ -106,6 +106,15 @@ export default function Home() {
       setUser(guestUser)
       setIsGuest(true)
     }
+  }
+
+  // 🔥 NEU: Callback für RaumErstellen onGameStarted
+  const handleGameStarted = (gameId: number, spielerFarbe: 'schwarz' | 'weiss') => {
+    console.log('🎮 handleGameStarted aufgerufen:', { gameId, spielerFarbe })
+    setGameId(gameId)
+    setPlayerColor(spielerFarbe)
+    setShowRaum(false)
+    setAktuellerRaumId(null)
   }
 
   // Nicht rendern bis gemountet
@@ -262,7 +271,7 @@ if (!user) {
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 flex flex-col items-center p-4">
       <div className="w-full max-w-4xl">
-        {/* Header mit UserProfile und Logout - MODERNISIERT */}
+        {/* Header mit UserProfile und Logout */}
         <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl mb-8 border border-amber-500/30">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3">
@@ -284,19 +293,20 @@ if (!user) {
           <>
             {!showRaum ? (
               <div className="space-y-6">
-                {/* GEGNER SUCHEN - JETZT RICHTIG GROß */}
+                {/* GEGNER SUCHEN */}
                 <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
                   <h2 className="text-2xl text-amber-300 mb-4 text-center">Spiel starten</h2>
                   <Matchmaking 
                     userId={user.id}
                     onGameFound={(id, color) => {
+                      console.log('🎯 Matchmaking gefunden:', { id, color })
                       setGameId(id)
                       setPlayerColor(color)
                     }}
                   />
                 </div>
 
-                {/* RAUM ERSTELLEN - GLEICHE GRÖßE */}
+                {/* RAUM ERSTELLEN */}
                 <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
                   <h2 className="text-2xl text-amber-300 mb-4 text-center">Mit Freunden spielen</h2>
                   <button
@@ -324,12 +334,14 @@ if (!user) {
               </div>
             ) : (
               <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
+                {/* 🔥 HIER IST DER WICHTIGE TEIL: onGameStarted Callback */}
                 <RaumErstellen
                   userId={user.id}
                   onRaumErstellt={(raumId) => {
-                    console.log('Raum erstellt:', raumId)
+                    console.log('🏠 Raum erstellt:', raumId)
                     setAktuellerRaumId(raumId)
                   }}
+                  onGameStarted={handleGameStarted}  // 🔥 NEU: Callback für Spielstart!
                 />
                 <button
                   onClick={() => {
@@ -347,11 +359,25 @@ if (!user) {
             )}
           </>
         ) : (
-          <OnlineGame 
-            gameId={gameId}
-            userId={user.id}
-            playerColor={playerColor!}
-          />
+          <div className="space-y-4">
+            {/* Zurück-Button */}
+            <button
+              onClick={() => {
+                setGameId(null)
+                setPlayerColor(null)
+              }}
+              className="text-amber-300 hover:text-white transition-colors flex items-center gap-2"
+            >
+              ← Zurück zum Menü
+            </button>
+            
+            <OnlineGame 
+              key={gameId} // 🔥 WICHTIG: Erzwingt Neu-Rendering
+              gameId={gameId}
+              userId={user.id}
+              playerColor={playerColor!}
+            />
+          </div>
         )}
       </div>
     </main>
