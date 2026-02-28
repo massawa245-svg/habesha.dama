@@ -11,16 +11,25 @@ interface BotGameProps {
   gameId: number
   userId: string
   playerColor: 'schwarz' | 'weiss'
+  initialBrett?: Stein[][]
+  initialTurn?: 'schwarz' | 'weiss'
 }
 
-export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
-  const [brett, setBrett] = useState<Stein[][]>(initialesBrett)
-  const [currentTurn, setCurrentTurn] = useState<'schwarz' | 'weiss'>('schwarz')
+export default function BotGame({ 
+  gameId, 
+  userId, 
+  playerColor,
+  initialBrett,
+  initialTurn
+}: BotGameProps) {
+  const [brett, setBrett] = useState<Stein[][]>(initialBrett || initialesBrett)
+  const [currentTurn, setCurrentTurn] = useState<'schwarz' | 'weiss'>(initialTurn || 'schwarz')
   const [winner, setWinner] = useState<'schwarz' | 'weiss' | null>(null)
   const [botThinking, setBotThinking] = useState(false)
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false)
+  const [showRematchDialog, setShowRematchDialog] = useState(false)
   
-  // 🔥 NEU: Zeit-Überwachung
+  // Zeit-Überwachung
   const [lastMoveTime, setLastMoveTime] = useState<number>(Date.now())
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
   
@@ -30,20 +39,55 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
   const isMyTurn = currentTurn === playerColor
   const isBotTurn = currentTurn !== playerColor
 
-  // 🔥 NEU: Zeit-Überwachung starten
+  // 🔥 NEU: Prüfen ob das Spiel bereits beendet war (beim Laden)
+  useEffect(() => {
+    if (initialBrett && initialTurn) {
+      console.log('📥 Bot-Spiel aus localStorage geladen')
+      setBrett(initialBrett)
+      setCurrentTurn(initialTurn)
+      setLastMoveTime(Date.now())
+      
+      // Prüfen ob das Spiel bereits zu Ende ist
+      const gameWinner = checkWinner(initialBrett)
+      if (gameWinner) {
+        console.log('🏆 Bereits beendetes Spiel geladen:', gameWinner)
+        setWinner(gameWinner)
+        setShowWinnerAnimation(true)
+      }
+    }
+  }, [initialBrett, initialTurn])
+
+  // 🔥 NEU: Spielstand im localStorage speichern (auch wenn beendet)
+  useEffect(() => {
+    if (!gameId || !userId || !playerColor) return
+
+    const gameState = {
+      gameId,
+      userId,
+      playerColor,
+      brett,
+      currentTurn,
+      winner,                    // 🔥 Winner speichern!
+      isBotGame: true,
+      timestamp: Date.now()
+    }
+    
+    localStorage.setItem(`game_${gameId}`, JSON.stringify(gameState))
+    console.log('🤖 Bot-Spielstand gespeichert', { currentTurn, winner })
+    
+  }, [brett, currentTurn, gameId, userId, playerColor, winner])
+
+  // 🔥 Zeit-Überwachung starten
   useEffect(() => {
     if (winner) return // Wenn schon gewonnen, nichts tun
     
-    // Bestehenden Timeout löschen
     if (timeoutId) {
       clearTimeout(timeoutId)
     }
     
-    // Neuen Timeout setzen (5 Minuten = 300.000 ms)
     const id = setTimeout(() => {
       console.log('⏰ Zeitüberschreitung! Kein Zug für 5 Minuten')
       
-      // Wer ist dran? Der andere Spieler gewinnt!
       if (currentTurn === 'schwarz') {
         console.log('🏆 Weiss gewinnt durch Zeitüberschreitung von Schwarz')
         setWinner('weiss')
@@ -52,11 +96,10 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
         setWinner('schwarz')
       }
       setShowWinnerAnimation(true)
-    }, 5 * 60 * 1000) // 5 Minuten
+    }, 5 * 60 * 1000)
     
     setTimeoutId(id)
     
-    // Cleanup
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId)
@@ -68,13 +111,11 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
   const hatSpielerZuege = (brett: Stein[][], spieler: 'schwarz' | 'weiss'): boolean => {
     console.log(`🔍 Prüfe ob ${spieler} noch Züge hat...`)
     
-    // 1. Prüfe ob Fressen möglich
     if (hatFressmoeglichkeit(brett, spieler)) {
       console.log(`✅ ${spieler} kann fressen`)
       return true
     }
     
-    // 2. Prüfe normale Züge
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const stein = brett[row][col]
@@ -90,7 +131,6 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
             
             if (nachRow >= 0 && nachRow < 8 && nachCol >= 0 && nachCol < 8) {
               if (brett[nachRow][nachCol] === null) {
-                // Richtung prüfen für normale Steine
                 if (!stein.istKoenig) {
                   if (spieler === 'schwarz' && dir.row > 0) {
                     console.log(`✅ ${spieler} kann normal ziehen`)
@@ -102,7 +142,7 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
                   }
                 } else {
                   console.log(`✅ ${spieler} (König) kann ziehen`)
-                  return true // König kann alle Richtungen
+                  return true
                 }
               }
             }
@@ -115,12 +155,11 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
     return false
   }
 
-  // 🔥 Gewinner prüfen (alle Bedingungen)
+  // 🔥 Gewinner prüfen
   const checkWinner = (aktuellesBrett: Stein[][]): 'schwarz' | 'weiss' | null => {
     let schwarz = 0
     let weiss = 0
     
-    // 1. Steine zählen
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const stein = aktuellesBrett[row][col]
@@ -131,7 +170,6 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
       }
     }
     
-    // 2. KEINE STEINE MEHR - Verloren!
     if (schwarz === 0) {
       console.log('🏆 Weiss gewinnt - Schwarz hat keine Steine mehr')
       return 'weiss'
@@ -141,12 +179,10 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
       return 'schwarz'
     }
     
-    // 3. GESPERRT - Keine Züge mehr möglich
     const spielerDran = currentTurn
     const kannZiehen = hatSpielerZuege(aktuellesBrett, spielerDran)
     
     if (!kannZiehen) {
-      // Spieler kann nicht ziehen → Gegner gewinnt
       const gewinner = spielerDran === 'schwarz' ? 'weiss' : 'schwarz'
       console.log(`🏆 ${gewinner} gewinnt - ${spielerDran} ist gesperrt`)
       return gewinner
@@ -172,7 +208,6 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
         await handleBotMove(move.von, move.nach)
       } else {
         console.log('🤖 Bot hat keine Züge mehr')
-        // Bot hat verloren - Spieler gewinnt!
         const gameWinner = playerColor
         console.log(`🏆 Spieler gewinnt! ${gameWinner}`)
         setWinner(gameWinner)
@@ -217,9 +252,8 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
 
     setBrett(neuesBrett)
     setCurrentTurn(nextTurn)
-    setLastMoveTime(Date.now()) // 🔥 Zeit zurücksetzen
+    setLastMoveTime(Date.now())
     
-    // Nach jedem Zug Gewinner prüfen
     const gameWinner = checkWinner(neuesBrett)
     if (gameWinner) {
       setWinner(gameWinner)
@@ -261,9 +295,8 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
 
     setBrett(neuesBrett)
     setCurrentTurn(nextTurn)
-    setLastMoveTime(Date.now()) // 🔥 Zeit zurücksetzen
+    setLastMoveTime(Date.now())
     
-    // Nach jedem Zug Gewinner prüfen
     const gameWinner = checkWinner(neuesBrett)
     if (gameWinner) {
       setWinner(gameWinner)
@@ -271,6 +304,38 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
     }
   }
 
+  const handleRematch = () => {
+    console.log('🔄 Rematch gestartet')
+    setBrett(initialesBrett())
+    setCurrentTurn('schwarz')
+    setWinner(null)
+    setShowWinnerAnimation(false)
+    setShowRematchDialog(false)
+    setLastMoveTime(Date.now())
+    
+    // Neuen GameId für Rematch? Oder einfach weiterspielen
+    window.location.reload() // Einfachste Lösung
+  }
+
+  const handleBackToMenu = () => {
+    // localStorage aufräumen
+    const keys = Object.keys(localStorage)
+    keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
+    localStorage.removeItem('currentGame')
+    window.location.reload()
+  }
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      console.log('👋 BotGame unmountet')
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [timeoutId])
+
+  // Winner Animation mit Rematch Dialog
   if (winner && showWinnerAnimation) {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
@@ -284,15 +349,23 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
           <p className="text-2xl text-amber-300 mb-8">
             {winner === 'schwarz' ? '⚫ Schwarz' : '⚪ Weiß'} hat gewonnen!
           </p>
-          <button
-            onClick={() => {
-              setShowWinnerAnimation(false)
-              window.location.reload()
-            }}
-            className="bg-gradient-to-r from-green-600 to-green-500 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-green-500 hover:to-green-400 transition-all transform hover:scale-105 shadow-xl"
-          >
-            ⚔️ Neues Spiel ⚔️
-          </button>
+          
+          {/* 🔥 NEU: Rematch Buttons */}
+          <div className="space-y-4">
+            <button
+              onClick={handleRematch}
+              className="w-full bg-gradient-to-r from-green-600 to-green-500 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-green-500 hover:to-green-400 transition-all transform hover:scale-105 shadow-xl"
+            >
+              ⚔️ Revanche spielen
+            </button>
+            
+            <button
+              onClick={handleBackToMenu}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-blue-500 hover:to-blue-400 transition-all transform hover:scale-105 shadow-xl"
+            >
+              🏠 Zurück zum Menü
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -305,7 +378,7 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
         <div className="flex justify-between items-center">
           <div>
             <p className="text-amber-300">Du spielst</p>
-            <p className={`text-2xl font-bold ${isMyTurn ? 'text-green-400 animate-pulse' : 'text-white'}`}>
+            <p className={`text-2xl font-bold ${isMyTurn && !winner ? 'text-green-400 animate-pulse' : 'text-white'}`}>
               {playerColor === 'schwarz' ? '⚫ SCHWARZ' : '⚪ WEISS'}
             </p>
           </div>
@@ -314,12 +387,11 @@ export default function BotGame({ gameId, userId, playerColor }: BotGameProps) {
           </div>
           <div>
             <p className="text-amber-300">Bot spielt</p>
-            <p className={`text-2xl font-bold ${isBotTurn ? 'text-green-400 animate-pulse' : 'text-white'}`}>
+            <p className={`text-2xl font-bold ${isBotTurn && !winner ? 'text-green-400 animate-pulse' : 'text-white'}`}>
               {playerColor === 'schwarz' ? '⚪ WEISS' : '⚫ SCHWARZ'}
             </p>
           </div>
         </div>
-        {/* 🔥 Zeit-Anzeige (optional) */}
         <div className="text-xs text-amber-400 text-center mt-2">
           ⏱️ 5 Minuten pro Zug
         </div>

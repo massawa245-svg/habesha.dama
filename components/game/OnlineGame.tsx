@@ -11,11 +11,20 @@ interface OnlineGameProps {
   gameId: number
   userId: string
   playerColor: 'schwarz' | 'weiss'
+  initialBrett?: Stein[][]  // 🔥 NEU
+  initialTurn?: 'schwarz' | 'weiss'  // 🔥 NEU
 }
 
-export default function OnlineGame({ gameId, userId, playerColor }: OnlineGameProps) {
-  const [brett, setBrett] = useState<Stein[][]>(initialesBrett)
-  const [currentTurn, setCurrentTurn] = useState<'schwarz' | 'weiss'>('schwarz')
+export default function OnlineGame({ 
+  gameId, 
+  userId, 
+  playerColor,
+  initialBrett,  // 🔥 NEU
+  initialTurn     // 🔥 NEU
+}: OnlineGameProps) {
+  // 🔥 VERBESSERT: initialBrett verwenden falls vorhanden
+  const [brett, setBrett] = useState<Stein[][]>(initialBrett || initialesBrett)
+  const [currentTurn, setCurrentTurn] = useState<'schwarz' | 'weiss'>(initialTurn || 'schwarz')
   const [gameChannel, setGameChannel] = useState<RealtimeChannel | null>(null)
   const [winner, setWinner] = useState<'schwarz' | 'weiss' | null>(null)
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false)
@@ -100,6 +109,25 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
     return null
   }
 
+  // 🔥 NEU: Spielstand im localStorage speichern
+  useEffect(() => {
+    if (!gameId || !userId || !playerColor || winner) return
+
+    const gameState = {
+      gameId,
+      userId,
+      playerColor,
+      brett,
+      currentTurn,
+      isBotGame: false,
+      timestamp: Date.now()
+    }
+    
+    localStorage.setItem(`game_${gameId}`, JSON.stringify(gameState))
+    console.log('💾 Online-Spielstand gespeichert', { currentTurn })
+    
+  }, [brett, currentTurn, gameId, userId, playerColor, winner])
+
   // 🔥 NEU: Prüfe nach jedem Spielerwechsel ob der Spieler noch ziehen kann
   useEffect(() => {
     if (winner || !brett) return
@@ -128,6 +156,13 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
 
   useEffect(() => {
     const loadGame = async () => {
+      // 🔥 Wenn wir bereits ein initiales Brett haben, nicht laden
+      if (initialBrett && initialTurn) {
+        console.log('📥 Verwende geladenes Spiel aus localStorage')
+        return
+      }
+
+      console.log('📥 Lade Spiel aus Datenbank:', gameId)
       const { data } = await supabase
         .from('games')
         .select('board, current_turn')
@@ -149,7 +184,7 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
       }
     }
     loadGame()
-  }, [gameId, supabase])
+  }, [gameId, supabase, initialBrett, initialTurn])
 
   useEffect(() => {
     const channel = supabase.channel(`game-${gameId}`)
@@ -242,6 +277,13 @@ export default function OnlineGame({ gameId, userId, playerColor }: OnlineGamePr
       setShowWinnerAnimation(true)
     }
   }
+
+  // 🔥 Cleanup wenn Komponente unmountet
+  useEffect(() => {
+    return () => {
+      console.log('👋 OnlineGame unmountet')
+    }
+  }, [])
 
   if (winner && showWinnerAnimation) {
     return (

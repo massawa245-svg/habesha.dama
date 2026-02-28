@@ -24,23 +24,62 @@ export default function Home() {
   const [showRaum, setShowRaum] = useState(false)
   const [aktuellerRaumId, setAktuellerRaumId] = useState<string | null>(null)
   const [isBotGame, setIsBotGame] = useState(false)
+  
+  // 🔥 Für geladene Spiel-Daten
+  const [savedBrett, setSavedBrett] = useState<any>(null)
+  const [savedTurn, setSavedTurn] = useState<any>(null)
+  
   const supabase = createClient()
 
-  // 🔥 NEU: Beim Laden prüfen ob Spiel gespeichert ist
+  // 🔥 VERBESSERT: Beim Laden prüfen ob Spiel gespeichert ist
   useEffect(() => {
-    const savedGame = localStorage.getItem('currentGame')
+    if (!user) return
+
+    // Nach allen gespeicherten Spielen suchen
+    const keys = Object.keys(localStorage)
+    const gameKeys = keys.filter(key => key.startsWith('game_'))
     
-    if (savedGame && user) {
-      try {
-        const { gameId, playerColor, isBotGame } = JSON.parse(savedGame)
-        console.log('🔄 Fortsetzen des Spiels:', { gameId, playerColor, isBotGame })
+    if (gameKeys.length > 0) {
+      // Das neueste Spiel nehmen
+      const latestGame = gameKeys
+        .map(key => ({
+          key,
+          data: JSON.parse(localStorage.getItem(key) || '{}')
+        }))
+        .sort((a, b) => b.data.timestamp - a.data.timestamp)[0]
+
+      const savedGame = latestGame.data
+      console.log('🔄 Geladener Spielstand:', savedGame)
+      
+      // Prüfen ob das Spiel dem aktuellen User gehört
+      if (savedGame.userId === user.id) {
+        setGameId(savedGame.gameId)
+        setPlayerColor(savedGame.playerColor)
+        setIsBotGame(savedGame.isBotGame)
         
-        setGameId(gameId)
-        setPlayerColor(playerColor)
-        setIsBotGame(isBotGame)
-      } catch (e) {
-        console.error('Fehler beim Laden des Spiels:', e)
-        localStorage.removeItem('currentGame')
+        // Brett und Turn für die Komponente speichern
+        setSavedBrett(savedGame.brett)
+        setSavedTurn(savedGame.currentTurn)
+      } else {
+        // Nicht unser Spiel -> löschen
+        localStorage.removeItem(latestGame.key)
+      }
+    } else {
+      // Kein gespeichertes Spiel
+      const savedGame = localStorage.getItem('currentGame')
+      
+      if (savedGame) {
+        try {
+          const { gameId, playerColor, isBotGame } = JSON.parse(savedGame)
+          console.log('🔄 Fortsetzen des Spiels (alt):', { gameId, playerColor, isBotGame })
+          
+          setGameId(gameId)
+          setPlayerColor(playerColor)
+          setIsBotGame(isBotGame)
+        } catch (e) {
+          console.error('Fehler beim Laden des Spiels:', e)
+          localStorage.removeItem('currentGame')
+        }
       }
     }
   }, [user])
@@ -107,7 +146,11 @@ export default function Home() {
           if (payload.new.status === 'playing') {
             console.log('🎮 Gegner beigetreten! Starte Spiel...')
             
-            // 🔥 Im localStorage speichern
+            // 🔥 Alle alten Spielstände löschen
+            const keys = Object.keys(localStorage)
+            keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
+            
+            // Im localStorage speichern
             localStorage.setItem('currentGame', JSON.stringify({
               gameId: payload.new.id,
               playerColor: 'schwarz',
@@ -118,6 +161,8 @@ export default function Home() {
             setPlayerColor('schwarz')
             setShowRaum(false)
             setAktuellerRaumId(null)
+            setSavedBrett(null)
+            setSavedTurn(null)
           }
         }
       )
@@ -136,9 +181,13 @@ export default function Home() {
     }
   }
 
-  // 🔥 Raum-Spiel starten (mit localStorage)
+  // Raum-Spiel starten (mit localStorage)
   const handleGameStarted = (gameId: number, spielerFarbe: 'schwarz' | 'weiss') => {
     console.log('🎮 handleGameStarted aufgerufen:', { gameId, spielerFarbe })
+    
+    // 🔥 Alle alten Spielstände löschen
+    const keys = Object.keys(localStorage)
+    keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
     
     // Im localStorage speichern
     localStorage.setItem('currentGame', JSON.stringify({
@@ -151,11 +200,17 @@ export default function Home() {
     setPlayerColor(spielerFarbe)
     setShowRaum(false)
     setAktuellerRaumId(null)
+    setSavedBrett(null)
+    setSavedTurn(null)
   }
 
-  // 🔥 Matchmaking mit Bot (mit localStorage)
+  // Matchmaking mit Bot (mit localStorage)
   const handleMatchmakingFound = (id: number, color: 'schwarz' | 'weiss', isBot?: boolean) => {
     console.log('🎯 Matchmaking gefunden:', { id, color, isBot })
+    
+    // 🔥 Alle alten Spielstände löschen
+    const keys = Object.keys(localStorage)
+    keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
     
     // Im localStorage speichern
     localStorage.setItem('currentGame', JSON.stringify({
@@ -167,6 +222,8 @@ export default function Home() {
     setGameId(id)
     setPlayerColor(color)
     setIsBotGame(isBot || false)
+    setSavedBrett(null)
+    setSavedTurn(null)
   }
 
   // Nicht rendern bis gemountet
@@ -409,10 +466,16 @@ export default function Home() {
             {/* 🔥 Zurück-Button mit localStorage Cleanup */}
             <button
               onClick={() => {
+                // Alle Spielstände löschen
+                const keys = Object.keys(localStorage)
+                keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
                 localStorage.removeItem('currentGame')
+                
                 setGameId(null)
                 setPlayerColor(null)
                 setIsBotGame(false)
+                setSavedBrett(null)
+                setSavedTurn(null)
               }}
               className="text-amber-300 hover:text-white transition-colors flex items-center gap-2"
             >
@@ -425,6 +488,8 @@ export default function Home() {
                 gameId={gameId}
                 userId={user.id}
                 playerColor={playerColor!}
+                initialBrett={savedBrett}
+                initialTurn={savedTurn}
               />
             ) : (
               <OnlineGame 
@@ -432,6 +497,8 @@ export default function Home() {
                 gameId={gameId}
                 userId={user.id}
                 playerColor={playerColor!}
+                initialBrett={savedBrett}
+                initialTurn={savedTurn}
               />
             )}
           </div>
