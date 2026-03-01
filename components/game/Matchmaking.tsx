@@ -38,20 +38,29 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
     }
   }, [searching])
 
-  // Prüfe alle 3 Sekunden wie viele Spieler wirklich warten
+  // Prüfe alle 3 Sekunden wie viele Spieler warten
   useEffect(() => {
     if (!searching) return
     
     const checkWaitingPlayers = setInterval(async () => {
-      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString()
-      
-      const { data } = await supabase
-        .from('games')
-        .select('id')
-        .eq('status', 'waiting')
-        .gt('created_at', twoMinutesAgo)
-      
-      setWaitingPlayers(data?.length || 0)
+      try {
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+        
+        const { data, error } = await supabase
+          .from('games')
+          .select('id')
+          .eq('status', 'waiting')
+          .gt('created_at', twoMinutesAgo)
+        
+        if (error) {
+          console.error('❌ Fehler beim Abrufen der Warteschlange:', error)
+          return
+        }
+        
+        setWaitingPlayers(data?.length || 0)
+      } catch (err) {
+        console.error('❌ Ausnahme in Warteschlangen-Prüfung:', err)
+      }
     }, 3000)
     
     return () => clearInterval(checkWaitingPlayers)
@@ -59,13 +68,17 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
 
   // Aufräumen alter Spiele
   const cleanupOldGames = async () => {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    
-    await supabase
-      .from('games')
-      .delete()
-      .eq('status', 'waiting')
-      .lt('created_at', fiveMinutesAgo)
+    try {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+      
+      await supabase
+        .from('games')
+        .delete()
+        .eq('status', 'waiting')
+        .lt('created_at', fiveMinutesAgo)
+    } catch (err) {
+      console.error('❌ Fehler beim Aufräumen alter Spiele:', err)
+    }
   }
 
   const startSearch = async () => {
@@ -74,12 +87,25 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
     console.log('🔍 Suche echten Gegner...')
 
     try {
+      // Prüfe Datenbankverbindung zuerst
+      const { error: testError } = await supabase
+        .from('games')
+        .select('count')
+        .limit(1)
+      
+      if (testError) {
+        console.error('❌ Datenbank nicht erreichbar:', testError)
+        alert('Datenbank-Fehler. Bitte später erneut versuchen.')
+        setSearching(false)
+        return
+      }
+
       await cleanupOldGames()
 
       // Nach offenen und frischen Spielen suchen
       const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString()
       
-      const { data: openGames } = await supabase
+      const { data: openGames, error: searchError } = await supabase
         .from('games')
         .select('*')
         .eq('status', 'waiting')
@@ -87,13 +113,18 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
         .order('created_at', { ascending: true })
         .limit(5)
 
+      if (searchError) {
+        console.error('❌ Fehler bei der Spielsuche:', searchError)
+        setSearching(false)
+        return
+      }
+
       console.log('📊 Frische offene Spiele:', openGames?.length || 0)
 
       // Prüfen ob es ein Spiel gibt, das NICHT von mir ist
       const availableGame = openGames?.find(game => game.player_black !== userId)
 
       if (availableGame) {
-        // Echter Gegner gefunden - beitreten als WEISS
         console.log('🎮 Echter Gegner gefunden! Trete bei:', availableGame.id)
         
         const { error } = await supabase
@@ -113,87 +144,142 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
             setSearching(false)
           }, 500)
           return
+        } else {
+          console.error('❌ Fehler beim Beitreten:', error)
         }
       }
 
       // Kein echter Gegner gefunden - eigenes Spiel erstellen
       console.log('🆕 Kein Gegner da, erstelle eigenes Spiel...')
+      
+      const newGameData = {
+        player_black: userId,
+        player_white: null,
+        status: 'waiting',
+        current_turn: 'schwarz',
+        board: JSON.stringify(initialesBrett()),
+        created_at: new Date().toISOString()
+      }
+      
+      console.log('📝 Erstelle Spiel mit Daten:', newGameData)
+      
       const { data: newGame, error: createError } = await supabase
         .from('games')
-        .insert({
-          player_black: userId,
-          player_white: null,
-          status: 'waiting',
-          current_turn: 'schwarz',
-          board: JSON.stringify(initialesBrett()),
-          created_at: new Date().toISOString()
-        })
+        .insert(newGameData)
         .select()
         .single()
 
       if (createError) {
         console.error('❌ Fehler beim Erstellen:', createError)
+        if (createError.code === '42501') {
+          alert('Berechtigungsfehler. Bitte neu einloggen.')
+        } else if (createError.code === '23505') {
+          alert('Ein Spiel mit dieser ID existiert bereits. Bitte erneut versuchen.')
+        } else {
+          alert(`Fehler: ${createError.message || 'Unbekannter Fehler'}`)
+        }
         setSearching(false)
         return
       }
 
-      console.log('✅ Eigenes Spiel erstellt. Warte auf Gegner...')
+      if (!newGame) {
+        console.error('❌ Keine Daten zurückbekommen')
+        alert('Fehler beim Erstellen des Spiels. Keine Daten erhalten.')
+        setSearching(false)
+        return
+      }
+
+      console.log('✅ Eigenes Spiel erstellt:', newGame)
       setCurrentGameId(newGame.id)
 
-      // Auf echten Gegner warten (maximal 25 Sekunden)
-      let waited = 0
-      const maxWait = 25
-      
-      const waitInterval = setInterval(async () => {
-        waited++
-        
-        const { data } = await supabase
-          .from('games')
-          .select('status')
-          .eq('id', newGame.id)
-          .single()
-        
-        if (data?.status === 'playing') {
-          console.log('🎮 Echter Gegner gefunden!')
-          clearInterval(waitInterval)
-          onGameFound(newGame.id, 'schwarz', false)
-          setSearching(false)
-        }
-        
-        // Nach 25 Sekunden Bot-Option anzeigen
-        if (waited >= maxWait && !showBotOption) {
-          clearInterval(waitInterval)
-          setShowBotOption(true)
-        }
-      }, 1000)
+       // Auf echten Gegner warten (maximal 25 Sekunden)
+let waited = 0
+const maxWait = 25
+
+const waitInterval = setInterval(async () => {
+  try {
+    waited++
+    
+    // maybeSingle() statt single() - gibt null zurück wenn nicht gefunden
+    const { data, error } = await supabase
+      .from('games')
+      .select('status')
+      .eq('id', newGame.id)
+      .maybeSingle()
+    
+    if (error) {
+      console.error('❌ Fehler beim Prüfen des Spielstatus:', error)
+      return
+    }
+    
+    // Wenn Spiel nicht existiert (wurde gelöscht)
+    if (!data) {
+      console.log('⚠️ Spiel wurde gelöscht, breche Suche ab')
+      clearInterval(waitInterval)
+      setSearching(false)
+      setShowBotOption(false)
+      return
+    }
+    
+    // Wenn Gegner beigetreten ist
+    if (data.status === 'playing') {
+      console.log('🎮 Echter Gegner gefunden!')
+      clearInterval(waitInterval)
+      onGameFound(newGame.id, 'schwarz', false)
+      setSearching(false)
+    }
+    
+      // Nach 25 Sekunden Bot-Option anzeigen
+      if (waited >= maxWait && !showBotOption) {
+        clearInterval(waitInterval)
+       setShowBotOption(true)
+      }
+    } catch (err) {
+     console.error('❌ Ausnahme beim Warten auf Gegner:', err)
+    }
+    }, 1000)
 
     } catch (error) {
       console.error('❌ Unerwarteter Fehler:', error)
+      alert('Ein unerwarteter Fehler ist aufgetreten. Bitte Seite neu laden.')
       setSearching(false)
     }
   }
 
-  // Bot-Spiel starten
+  // ✅ KORRIGIERTE Bot-Spiel starten Funktion
   const startBotGame = async () => {
-    if (!currentGameId) return
+    if (!currentGameId) {
+      console.error('❌ Keine GameId für Bot-Spiel')
+      return
+    }
     
     console.log('🤖 Bot-Spiel wird gestartet...')
     
-    // Markiere das Spiel als Bot-Spiel
-    await supabase
-      .from('games')
-      .update({ 
-        is_bot_game: true,
-        status: 'playing'
-      })
-      .eq('id', currentGameId)
-    
-    // Speichere in localStorage dass es ein Bot-Spiel ist
-    localStorage.setItem(`bot_game_${currentGameId}`, 'true')
-    
-    onGameFound(currentGameId, 'schwarz', true)
-    setSearching(false)
-    setShowBotOption(false)
+    try {
+      // NUR status updaten - is_bot_game gibt es nicht in der DB!
+      const { error } = await supabase
+        .from('games')
+        .update({ 
+          status: 'playing'
+        })
+        .eq('id', currentGameId)
+      
+      if (error) {
+        console.error('❌ Fehler beim Bot-Update:', error)
+        alert('Fehler beim Starten des Bot-Spiels.')
+        return
+      }
+      
+      // Bot-Status im localStorage speichern
+      localStorage.setItem(`bot_game_${currentGameId}`, 'true')
+      
+      onGameFound(currentGameId, 'schwarz', true)
+      setSearching(false)
+      setShowBotOption(false)
+    } catch (error) {
+      console.error('❌ Fehler beim Bot-Start:', error)
+      alert('Fehler beim Starten des Bot-Spiels.')
+    }
   }
 
   const cancelSearch = async () => {
@@ -203,11 +289,15 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
     
     // Eigenes Spiel löschen falls vorhanden
     if (currentGameId) {
-      await supabase
-        .from('games')
-        .delete()
-        .eq('id', currentGameId)
-        .eq('status', 'waiting')
+      try {
+        await supabase
+          .from('games')
+          .delete()
+          .eq('id', currentGameId)
+          .eq('status', 'waiting')
+      } catch (err) {
+        console.error('❌ Fehler beim Löschen des Spiels:', err)
+      }
     }
     
     setSearching(false)
@@ -248,7 +338,6 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
             Zeit: {formatTime(searchTime)} / 0:30
           </p>
           
-          {/* Anzeige wie viele Spieler warten */}
           <p className="text-green-400 text-sm mb-4">
             Spieler in Warteschlange: {waitingPlayers}
           </p>
@@ -257,7 +346,6 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
             <div className="animate-spin text-5xl text-amber-300">⏳</div>
           </div>
 
-          {/* Fortschrittsbalken */}
           <div className="w-full bg-amber-900/50 h-2 rounded-full mb-6 overflow-hidden">
             <div 
               className="bg-green-500 h-full transition-all duration-300"
@@ -265,7 +353,6 @@ export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
             />
           </div>
 
-          {/* Bot-Option nach 25 Sekunden */}
           {showBotOption && (
             <div className="mb-4 space-y-2">
               <p className="text-yellow-400 text-sm">
