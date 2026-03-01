@@ -10,6 +10,7 @@ import type { User } from '@supabase/supabase-js'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { useTranslations } from 'next-intl'
 import Header from '@/components/Header'
+import GameChat from '@/components/game/GameChat' 
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
