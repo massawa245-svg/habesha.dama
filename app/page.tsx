@@ -1,8 +1,6 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
-import LoginButton from '@/components/auth/LoginButton'
-import UserProfile from '@/components/auth/UserProfile'
 import Matchmaking from '@/components/game/Matchmaking'
 import RaumErstellen from '@/components/game/RaumErstellen'
 import OnlineGame from '@/components/game/OnlineGame'
@@ -11,7 +9,7 @@ import { createClient, createGuestUser } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { useTranslations } from 'next-intl'
-import LogoutButton from '@/components/auth/LogoutButton'
+import Header from '@/components/Header'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
@@ -25,7 +23,7 @@ export default function Home() {
   const [aktuellerRaumId, setAktuellerRaumId] = useState<string | null>(null)
   const [isBotGame, setIsBotGame] = useState(false)
   
-  // 🔥 Für geladene Spiel-Daten
+  // Für geladene Spiel-Daten
   const [savedBrett, setSavedBrett] = useState<any>(null)
   const [savedTurn, setSavedTurn] = useState<any>(null)
   
@@ -35,12 +33,10 @@ export default function Home() {
   useEffect(() => {
     if (!user) return
 
-    // Nach allen gespeicherten Spielen suchen
     const keys = Object.keys(localStorage)
     const gameKeys = keys.filter(key => key.startsWith('game_'))
     
     if (gameKeys.length > 0) {
-      // Das neueste Spiel nehmen
       const latestGame = gameKeys
         .map(key => ({
           key,
@@ -51,21 +47,16 @@ export default function Home() {
       const savedGame = latestGame.data
       console.log('🔄 Geladener Spielstand:', savedGame)
       
-      // Prüfen ob das Spiel dem aktuellen User gehört
       if (savedGame.userId === user.id) {
         setGameId(savedGame.gameId)
         setPlayerColor(savedGame.playerColor)
         setIsBotGame(savedGame.isBotGame)
-        
-        // Brett und Turn für die Komponente speichern
         setSavedBrett(savedGame.brett)
         setSavedTurn(savedGame.currentTurn)
       } else {
-        // Nicht unser Spiel -> löschen
         localStorage.removeItem(latestGame.key)
       }
     } else {
-      // Kein gespeichertes Spiel
       const savedGame = localStorage.getItem('currentGame')
       
       if (savedGame) {
@@ -146,11 +137,9 @@ export default function Home() {
           if (payload.new.status === 'playing') {
             console.log('🎮 Gegner beigetreten! Starte Spiel...')
             
-            // 🔥 Alle alten Spielstände löschen
             const keys = Object.keys(localStorage)
             keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
             
-            // Im localStorage speichern
             localStorage.setItem('currentGame', JSON.stringify({
               gameId: payload.new.id,
               playerColor: 'schwarz',
@@ -185,11 +174,9 @@ export default function Home() {
   const handleGameStarted = (gameId: number, spielerFarbe: 'schwarz' | 'weiss') => {
     console.log('🎮 handleGameStarted aufgerufen:', { gameId, spielerFarbe })
     
-    // 🔥 Alle alten Spielstände löschen
     const keys = Object.keys(localStorage)
     keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
     
-    // Im localStorage speichern
     localStorage.setItem('currentGame', JSON.stringify({
       gameId,
       playerColor: spielerFarbe,
@@ -208,11 +195,9 @@ export default function Home() {
   const handleMatchmakingFound = (id: number, color: 'schwarz' | 'weiss', isBot?: boolean) => {
     console.log('🎯 Matchmaking gefunden:', { id, color, isBot })
     
-    // 🔥 Alle alten Spielstände löschen
     const keys = Object.keys(localStorage)
     keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
     
-    // Im localStorage speichern
     localStorage.setItem('currentGame', JSON.stringify({
       gameId: id,
       playerColor: color,
@@ -242,7 +227,7 @@ export default function Home() {
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border-2 border-amber-500/20 rounded-full animate-rotate-slow"></div>
         </div>
 
-        {/* Navigation */}
+        {/* Navigation mit LanguageSwitcher */}
         <nav className="relative z-10 flex justify-between items-center p-4 sm:p-6 max-w-7xl mx-auto">
           <div className="flex items-center gap-2">
             <span className="text-3xl animate-bounce">🇪🇹</span>
@@ -279,8 +264,9 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Buttons */}
+              {/* 🔥 Buttons für Gast-Login UND Google Login */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                {/* Gast-Button */}
                 <button
                   onClick={handleGuestLogin}
                   className="group bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-3"
@@ -289,9 +275,29 @@ export default function Home() {
                   {t('guestPlay')}
                   <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
                 </button>
-                <div className="w-full sm:w-auto">
-                  <LoginButton />
-                </div>
+
+                {/* 🔥 Google Login Button */}
+                <button
+                  onClick={async () => {
+                    const supabase = createClient()
+                    await supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: {
+                        redirectTo: `${location.origin}/auth/callback`
+                      }
+                    })
+                  }}
+                  className="group bg-white hover:bg-gray-100 text-gray-800 px-8 py-4 rounded-xl text-lg font-semibold transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-3 border-2 border-white/20"
+                >
+                  <svg className="w-6 h-6" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                  <span>Mit Google anmelden</span>
+                  <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
+                </button>
               </div>
             </div>
 
@@ -309,7 +315,6 @@ export default function Home() {
                       const hatStein = (row < 3 && istDunkel) || (row > 4 && istDunkel)
                       const farbe = row < 3 ? 'bg-gray-900' : 'bg-gray-100'
                       
-                      // Animierte Steine (nur einige)
                       const animate = hatStein && Math.random() > 0.7
                       
                       return (
@@ -373,35 +378,21 @@ export default function Home() {
           </div>
         </footer>
       </div>
-    )
+    ) // ← Hier war der Fehler! Diese Klammer fehlte!
   }
 
-  // 🎮 GAME SECTION für eingeloggte User
+  // 🎮 GAME SECTION für eingeloggte User - Jetzt mit neuem Header!
   return (
-    <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 flex flex-col items-center p-4">
-      <div className="w-full max-w-4xl">
-        {/* Header */}
-        <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl mb-8 border border-amber-500/30">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center shadow-xl">
-                <span className="text-2xl animate-bounce">🇪🇹</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                Habesha Dama
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <UserProfile />
-              <LogoutButton />
-            </div>
-          </div>
-        </div>
+    <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950">
+      <div className="max-w-4xl mx-auto p-4">
+        
+        {/* 🔥 NEU: Einheitlicher Header (macht alles: Profil, Login, Logout) */}
+        <Header />
 
         {!gameId ? (
           <>
             {!showRaum ? (
-              <div className="space-y-6">
+              <div className="space-y-6 mt-6">
                 {/* GEGNER SUCHEN */}
                 <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
                   <h2 className="text-2xl text-amber-300 mb-4 text-center">Spiel starten</h2>
@@ -437,7 +428,7 @@ export default function Home() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
+              <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30 mt-6">
                 <RaumErstellen
                   userId={user.id}
                   onRaumErstellt={(raumId) => {
@@ -462,11 +453,10 @@ export default function Home() {
             )}
           </>
         ) : (
-          <div className="space-y-4">
-            {/* 🔥 Zurück-Button mit localStorage Cleanup */}
+          <div className="space-y-4 mt-6">
+            {/* Zurück-Button mit localStorage Cleanup */}
             <button
               onClick={() => {
-                // Alle Spielstände löschen
                 const keys = Object.keys(localStorage)
                 keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
                 localStorage.removeItem('currentGame')
