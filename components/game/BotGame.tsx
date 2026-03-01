@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import DamaBoard from '../board/DamaBoard'
+import GameChat from './GameChat'  // 🔥 Chat importieren!
 import { createClient } from '@/lib/supabase/client'
 import type { Position, Stein, Player } from '@/lib/game/types'
 import { initialesBrett, hatWeitereFresszuege, hatFressmoeglichkeit } from '@/lib/game/logic'
@@ -28,18 +29,21 @@ export default function BotGame({
   const [botThinking, setBotThinking] = useState(false)
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false)
   const [showRematchDialog, setShowRematchDialog] = useState(false)
+  const [chatOpen, setChatOpen] = useState(true) // 🔥 Chat State!
   
   // Zeit-Überwachung
   const [lastMoveTime, setLastMoveTime] = useState<number>(Date.now())
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
   
   const supabase = createClient()
-  const bot = new DamaBot('medium')
+  
+  // 🔥 KORRIGIERT: Bot ohne Parameter (Standard ist 'medium')
+  const bot = new DamaBot()
 
   const isMyTurn = currentTurn === playerColor
   const isBotTurn = currentTurn !== playerColor
 
-  // 🔥 NEU: Prüfen ob das Spiel bereits beendet war (beim Laden)
+  // Prüfen ob das Spiel bereits beendet war (beim Laden)
   useEffect(() => {
     if (initialBrett && initialTurn) {
       console.log('📥 Bot-Spiel aus localStorage geladen')
@@ -57,7 +61,7 @@ export default function BotGame({
     }
   }, [initialBrett, initialTurn])
 
-  // 🔥 NEU: Spielstand im localStorage speichern (auch wenn beendet)
+  // Spielstand im localStorage speichern (auch wenn beendet)
   useEffect(() => {
     if (!gameId || !userId || !playerColor) return
 
@@ -67,7 +71,7 @@ export default function BotGame({
       playerColor,
       brett,
       currentTurn,
-      winner,                    // 🔥 Winner speichern!
+      winner,
       isBotGame: true,
       timestamp: Date.now()
     }
@@ -77,9 +81,9 @@ export default function BotGame({
     
   }, [brett, currentTurn, gameId, userId, playerColor, winner])
 
-  // 🔥 Zeit-Überwachung starten
+  // Zeit-Überwachung starten
   useEffect(() => {
-    if (winner) return // Wenn schon gewonnen, nichts tun
+    if (winner) return
     
     if (timeoutId) {
       clearTimeout(timeoutId)
@@ -107,7 +111,7 @@ export default function BotGame({
     }
   }, [lastMoveTime, currentTurn, winner])
 
-  // 🔥 Prüft ob Spieler noch Züge hat
+  // Prüft ob Spieler noch Züge hat
   const hatSpielerZuege = (brett: Stein[][], spieler: 'schwarz' | 'weiss'): boolean => {
     console.log(`🔍 Prüfe ob ${spieler} noch Züge hat...`)
     
@@ -155,7 +159,7 @@ export default function BotGame({
     return false
   }
 
-  // 🔥 Gewinner prüfen
+  // Gewinner prüfen
   const checkWinner = (aktuellesBrett: Stein[][]): 'schwarz' | 'weiss' | null => {
     let schwarz = 0
     let weiss = 0
@@ -312,13 +316,10 @@ export default function BotGame({
     setShowWinnerAnimation(false)
     setShowRematchDialog(false)
     setLastMoveTime(Date.now())
-    
-    // Neuen GameId für Rematch? Oder einfach weiterspielen
-    window.location.reload() // Einfachste Lösung
+    window.location.reload()
   }
 
   const handleBackToMenu = () => {
-    // localStorage aufräumen
     const keys = Object.keys(localStorage)
     keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
     localStorage.removeItem('currentGame')
@@ -350,7 +351,6 @@ export default function BotGame({
             {winner === 'schwarz' ? '⚫ Schwarz' : '⚪ Weiß'} hat gewonnen!
           </p>
           
-          {/* 🔥 NEU: Rematch Buttons */}
           <div className="space-y-4">
             <button
               onClick={handleRematch}
@@ -373,31 +373,58 @@ export default function BotGame({
 
   return (
     <div className="space-y-4">
-      {/* Info-Leiste */}
-      <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl border border-amber-500/30">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-amber-300">Du spielst</p>
-            <p className={`text-2xl font-bold ${isMyTurn && !winner ? 'text-green-400 animate-pulse' : 'text-white'}`}>
-              {playerColor === 'schwarz' ? '⚫ SCHWARZ' : '⚪ WEISS'}
-            </p>
+      {/* 🔥 ERSTE ZEILE: Bot-Info und CHAT nebeneinander */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Linke Spalte: Bot-Info */}
+        <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl border border-amber-500/30">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-amber-300">Du spielst</p>
+              <p className={`text-2xl font-bold ${isMyTurn && !winner ? 'text-green-400 animate-pulse' : 'text-white'}`}>
+                {playerColor === 'schwarz' ? '⚫ SCHWARZ' : '⚪ WEISS'}
+              </p>
+            </div>
+            <div className="text-center">
+              {botThinking && <p className="text-sm text-green-400 animate-pulse">🤖 Bot überlegt...</p>}
+            </div>
+            <div>
+              <p className="text-amber-300">Bot spielt</p>
+              <p className={`text-2xl font-bold ${isBotTurn && !winner ? 'text-green-400 animate-pulse' : 'text-white'}`}>
+                {playerColor === 'schwarz' ? '⚪ WEISS' : '⚫ SCHWARZ'}
+              </p>
+            </div>
           </div>
-          <div className="text-center">
-            {botThinking && <p className="text-sm text-green-400 animate-pulse">🤖 Bot überlegt...</p>}
-          </div>
-          <div>
-            <p className="text-amber-300">Bot spielt</p>
-            <p className={`text-2xl font-bold ${isBotTurn && !winner ? 'text-green-400 animate-pulse' : 'text-white'}`}>
-              {playerColor === 'schwarz' ? '⚪ WEISS' : '⚫ SCHWARZ'}
-            </p>
+          <div className="text-xs text-amber-400 text-center mt-2">
+            ⏱️ 5 Minuten pro Zug
           </div>
         </div>
-        <div className="text-xs text-amber-400 text-center mt-2">
-          ⏱️ 5 Minuten pro Zug
+
+        {/* 🔥 Rechte Spalte: CHAT */}
+        <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl border border-amber-500/30">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">💬</span>
+              <span className="text-white font-medium">Chat</span>
+            </div>
+            <button
+              onClick={() => setChatOpen(!chatOpen)}
+              className="bg-amber-800/50 hover:bg-amber-700/50 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1 transition-all"
+            >
+              <span>{chatOpen ? '▼' : '▲'}</span>
+            </button>
+          </div>
+
+          {chatOpen && (
+            <GameChat 
+              gameId={gameId}
+              userId={userId}
+              playerColor={playerColor}
+            />
+          )}
         </div>
       </div>
 
-      {/* Spielbrett */}
+      {/* Zweite Zeile: Spielbrett */}
       <DamaBoard
         brett={brett}
         setBrett={setBrett}
