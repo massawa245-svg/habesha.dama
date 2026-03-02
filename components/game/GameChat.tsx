@@ -78,7 +78,7 @@ export default function GameChat({ gameId, userId, playerColor }: GameChatProps)
       timestamp: Date.now()
     }
 
-    console.log('📤 Sende Nachricht:', message)
+    console.log(' Sende Nachricht:', message)
     
     await channelRef.current.send({
       type: 'broadcast',
@@ -91,50 +91,73 @@ export default function GameChat({ gameId, userId, playerColor }: GameChatProps)
 
   return (
     <div className="space-y-3">
-      {/* Verbindungsstatus */}
-      <div className="flex items-center gap-2 text-xs">
+      {/* Verbindungsstatus - verbessert */}
+      <div className="flex items-center gap-2 text-xs bg-amber-900/30 p-2 rounded-lg">
         <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
         <span className="text-amber-300">{isConnected ? 'Verbunden' : 'Verbindungsaufbau...'}</span>
       </div>
 
-      {/* Nachrichten */}
-      <div className="h-48 overflow-y-auto space-y-2 bg-black/40 rounded-lg p-3 border border-amber-500/20">
+      {/* Nachrichten - als Bubbles */}
+      <div className="h-48 overflow-y-auto space-y-2 bg-amber-900/20 rounded-lg p-3 border border-amber-500/30">
         {messages.length === 0 ? (
-          <div className="text-amber-300/50 text-center italic">Noch keine Nachrichten...</div>
+          <div className="text-amber-300/50 text-center italic py-4">
+            📭 Keine Nachrichten...
+          </div>
         ) : (
           messages.map((msg) => (
-            <div key={msg.id} className={`text-sm ${msg.userId === 'system' ? 'opacity-70' : ''}`}>
-              {msg.userId === 'system' ? (
-                <span className="text-amber-300/60 italic">{msg.message}</span>
-              ) : (
-                <>
-                  <span className="text-amber-300 font-medium">{msg.userName}:</span>{' '}
-                  <span className="text-white">{msg.message}</span>
-                </>
-              )}
+            <div 
+              key={msg.id} 
+              className={`${
+                msg.userId === 'system' 
+                  ? 'text-center'
+                  : msg.userId === userId
+                  ? 'flex justify-end'
+                  : 'flex justify-start'
+              }`}
+            >
+              <div 
+                className={`inline-block max-w-[80%] p-2 rounded-lg ${
+                  msg.userId === 'system' 
+                    ? 'bg-amber-800/30 text-amber-300/70 italic text-sm' 
+                    : msg.userId === userId
+                    ? 'bg-green-600/20 border border-green-500/30 rounded-br-none'
+                    : 'bg-amber-700/20 border border-amber-500/30 rounded-bl-none'
+                }`}
+              >
+                {msg.userId !== 'system' && (
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className={`w-2 h-2 rounded-full ${
+                      msg.userName.includes('⚫') ? 'bg-gray-900' : 'bg-white'
+                    }`} />
+                    <span className="text-amber-300 text-xs font-medium">{msg.userName}</span>
+                  </div>
+                )}
+                <p className="text-white text-sm break-words">{msg.message}</p>
+              </div>
             </div>
           ))
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Eingabe */}
-      <div className="flex gap-2">
+      {/* 🔥 Eingabe mit GRÜNEM Send-Button */}
+      <div className="flex gap-2 bg-amber-900/30 p-2 rounded-lg border border-amber-500/30">
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
           placeholder="Nachricht eingeben..."
-          className="flex-1 bg-amber-900/30 text-white px-3 py-2 rounded-lg text-sm border border-amber-500/30 focus:outline-none focus:border-amber-400 placeholder-amber-300/50"
+          className="flex-1 bg-amber-950/50 text-white px-3 py-2 rounded-lg text-sm border border-amber-500/30 focus:outline-none focus:border-amber-400 placeholder-amber-300/50"
           disabled={!isConnected}
         />
         <button
           onClick={sendMessage}
           disabled={!newMessage.trim() || !isConnected}
-          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-1"
         >
-          📤
+          <span>📤</span>
+          <span className="hidden sm:inline">Senden</span>
         </button>
       </div>
     </div>

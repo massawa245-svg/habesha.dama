@@ -14,6 +14,7 @@ interface OnlineGameProps {
   playerColor: 'schwarz' | 'weiss'
   initialBrett?: Stein[][]
   initialTurn?: 'schwarz' | 'weiss'
+  initialWinner?: 'schwarz' | 'weiss' | null  // 🔥 NEU: Winner aus localStorage
 }
 
 export default function OnlineGame({ 
@@ -21,15 +22,24 @@ export default function OnlineGame({
   userId, 
   playerColor,
   initialBrett,
-  initialTurn
+  initialTurn,
+  initialWinner  // 🔥 NEU
 }: OnlineGameProps) {
   const [brett, setBrett] = useState<Stein[][]>(initialBrett || initialesBrett)
   const [currentTurn, setCurrentTurn] = useState<'schwarz' | 'weiss'>(initialTurn || 'schwarz')
   const [gameChannel, setGameChannel] = useState<RealtimeChannel | null>(null)
-  const [winner, setWinner] = useState<'schwarz' | 'weiss' | null>(null)
+  const [winner, setWinner] = useState<'schwarz' | 'weiss' | null>(initialWinner || null)  // 🔥 initialWinner verwenden
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false)
   const [chatOpen, setChatOpen] = useState(true)
   const supabase = createClient()
+
+  // 🔥 NEU: Wenn initialWinner da ist, sofort Animation zeigen
+  useEffect(() => {
+    if (initialWinner) {
+      console.log('🏆 Bereits beendetes Spiel geladen:', initialWinner)
+      setShowWinnerAnimation(true)
+    }
+  }, [initialWinner])
 
   // 🔥 Funktion: Prüft ob ein Spieler noch einen legalen Zug hat
   const hatSpielerZuege = (brett: Stein[][], spieler: 'schwarz' | 'weiss'): boolean => {
@@ -93,9 +103,9 @@ export default function OnlineGame({
     return null
   }
 
-  // 🔥 NEU: Spielstand im localStorage speichern
+  // 🔥 VERBESSERT: Spielstand im localStorage speichern (mit Winner!)
   useEffect(() => {
-    if (!gameId || !userId || !playerColor || winner) return
+    if (!gameId || !userId || !playerColor) return
 
     const gameState = {
       gameId,
@@ -103,11 +113,13 @@ export default function OnlineGame({
       playerColor,
       brett,
       currentTurn,
+      winner,                    // 🔥 Winner wird jetzt gespeichert!
       isBotGame: false,
       timestamp: Date.now()
     }
     
     localStorage.setItem(`game_${gameId}`, JSON.stringify(gameState))
+    console.log('💾 Online-Spielstand gespeichert', { currentTurn, winner })
     
   }, [brett, currentTurn, gameId, userId, playerColor, winner])
 
@@ -252,6 +264,7 @@ export default function OnlineGame({
     }
   }
 
+  // 🔥 VERBESSERTE Winner Animation mit Rematch und Menü-Button
   if (winner && showWinnerAnimation) {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
@@ -265,15 +278,28 @@ export default function OnlineGame({
           <p className="text-2xl text-amber-300 mb-8">
             {winner === 'schwarz' ? '⚫ Schwarz' : '⚪ Weiß'} hat gewonnen!
           </p>
-          <button
-            onClick={() => {
-              setShowWinnerAnimation(false)
-              window.location.reload()
-            }}
-            className="bg-gradient-to-r from-green-600 to-green-500 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-green-500 hover:to-green-400 transition-all transform hover:scale-105 shadow-xl"
-          >
-            ⚔️ Neues Spiel ⚔️
-          </button>
+          <div className="space-y-4">
+            <button
+              onClick={() => {
+                setShowWinnerAnimation(false)
+                window.location.reload()
+              }}
+              className="w-full bg-gradient-to-r from-green-600 to-green-500 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-green-500 hover:to-green-400 transition-all transform hover:scale-105 shadow-xl"
+            >
+              ⚔️ Neues Spiel
+            </button>
+            <button
+              onClick={() => {
+                // localStorage aufräumen
+                localStorage.removeItem(`game_${gameId}`)
+                localStorage.removeItem('currentGame')
+                window.location.href = '/'
+              }}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 py-4 rounded-xl text-xl font-bold hover:from-blue-500 hover:to-blue-400 transition-all transform hover:scale-105 shadow-xl"
+            >
+              🏠 Zurück zum Menü
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -309,30 +335,32 @@ export default function OnlineGame({
           </div>
         </div>
 
-        {/* 🔥 Rechte Spalte: CHAT */}
-        <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl border border-amber-500/30">
-          {/* Chat Header mit Button */}
-          <div className="flex items-center justify-between mb-3">
+        {/* 🔥 Rechte Spalte: CHAT mit Briefkasten-Design */}
+        <div className="bg-gradient-to-b from-amber-900/50 to-amber-950/50 backdrop-blur-sm p-4 rounded-xl border border-amber-500/30 shadow-inner">
+          {/* Chat Header mit Briefkasten-Icon */}
+          <div className="flex items-center justify-between mb-3 border-b border-amber-500/30 pb-2">
             <div className="flex items-center gap-2">
-              <span className="text-xl">💬</span>
+              <span className="text-2xl">📬</span>
               <span className="text-white font-medium">Spieler-Chat</span>
             </div>
             <button
               onClick={() => setChatOpen(!chatOpen)}
-              className="bg-amber-800/50 hover:bg-amber-700/50 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1 transition-all"
+              className="bg-amber-800/50 hover:bg-amber-700/50 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1 transition-all border border-amber-500/30"
             >
               <span>{chatOpen ? '▼' : '▲'}</span>
-              <span className="hidden sm:inline">{chatOpen ? 'Ausblenden' : 'Einblenden'}</span>
+              <span className="hidden sm:inline">{chatOpen ? 'Schließen' : 'Öffnen'}</span>
             </button>
           </div>
 
           {/* Chat Inhalt */}
           {chatOpen && (
-            <GameChat 
-              gameId={gameId}
-              userId={userId}
-              playerColor={playerColor}
-            />
+            <div className="animate-slide-down">
+              <GameChat 
+                gameId={gameId}
+                userId={userId}
+                playerColor={playerColor}
+              />
+            </div>
           )}
         </div>
       </div>
