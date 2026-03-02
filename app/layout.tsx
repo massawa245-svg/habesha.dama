@@ -46,16 +46,14 @@ export const metadata = {
       'en': 'https://habesha-dama.com/en',
     },
   },
-  // 🔥 NEU: Icons für verschiedene Plattformen
+  // 🔥 NUR SVG und ICO - PNGs entfernt!
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
       { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/icon.svg', type: 'image/svg+xml' }, // iOS kann SVG!
     ],
   },
 }
@@ -71,7 +69,7 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <head>
-        {/* 🔥 Icons werden jetzt über metadata verwaltet */}
+        {/* Icons werden über metadata verwaltet */}
       </head>
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages}>
