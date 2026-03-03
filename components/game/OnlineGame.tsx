@@ -14,7 +14,7 @@ interface OnlineGameProps {
   playerColor: 'schwarz' | 'weiss'
   initialBrett?: Stein[][]
   initialTurn?: 'schwarz' | 'weiss'
-  initialWinner?: 'schwarz' | 'weiss' | null  // 🔥 NEU: Winner aus localStorage
+  initialWinner?: 'schwarz' | 'weiss' | null
 }
 
 export default function OnlineGame({ 
@@ -23,17 +23,20 @@ export default function OnlineGame({
   playerColor,
   initialBrett,
   initialTurn,
-  initialWinner  // 🔥 NEU
+  initialWinner
 }: OnlineGameProps) {
   const [brett, setBrett] = useState<Stein[][]>(initialBrett || initialesBrett)
   const [currentTurn, setCurrentTurn] = useState<'schwarz' | 'weiss'>(initialTurn || 'schwarz')
   const [gameChannel, setGameChannel] = useState<RealtimeChannel | null>(null)
-  const [winner, setWinner] = useState<'schwarz' | 'weiss' | null>(initialWinner || null)  // 🔥 initialWinner verwenden
+  const [winner, setWinner] = useState<'schwarz' | 'weiss' | null>(initialWinner || null)
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false)
   const [chatOpen, setChatOpen] = useState(true)
+  const [playerBlackId, setPlayerBlackId] = useState<string | null>(null)
+  const [playerWhiteId, setPlayerWhiteId] = useState<string | null>(null)
+  const [eloChange, setEloChange] = useState<number | null>(null)
   const supabase = createClient()
 
-  // 🔥 NEU: Wenn initialWinner da ist, sofort Animation zeigen
+  // 🔥 Wenn initialWinner da ist, sofort Animation zeigen
   useEffect(() => {
     if (initialWinner) {
       console.log('🏆 Bereits beendetes Spiel geladen:', initialWinner)
@@ -103,6 +106,39 @@ export default function OnlineGame({
     return null
   }
 
+  // 🔥 NEU: ELO nach Spiel aktualisieren
+  const updateElo = async (winnerId: string, loserId: string) => {
+    try {
+      const response = await fetch('/api/elo/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId,
+          winnerId,
+          loserId,
+          draw: false,
+          piecesWinner: 12,
+          piecesLoser: 0
+        })
+      })
+      
+      const data = await response.json()
+      console.log('🏆 ELO aktualisiert:', data)
+      
+      if (data.success) {
+        // Speichere die ELO-Änderung für die Anzeige
+        if (winnerId === userId) {
+          setEloChange(data.result.changeA)
+        } else if (loserId === userId) {
+          setEloChange(data.result.changeB)
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ ELO Fehler:', error)
+    }
+  }
+
   // 🔥 VERBESSERT: Spielstand im localStorage speichern (mit Winner!)
   useEffect(() => {
     if (!gameId || !userId || !playerColor) return
@@ -113,7 +149,7 @@ export default function OnlineGame({
       playerColor,
       brett,
       currentTurn,
-      winner,                    // 🔥 Winner wird jetzt gespeichert!
+      winner,
       isBotGame: false,
       timestamp: Date.now()
     }
@@ -134,6 +170,13 @@ export default function OnlineGame({
       if (!kannZiehen) {
         const gameWinner = spielerDran === 'schwarz' ? 'weiss' : 'schwarz'
         
+        // 🔥 ELO updaten
+        if (gameWinner === 'schwarz' && playerBlackId && playerWhiteId) {
+          await updateElo(playerBlackId, playerWhiteId)
+        } else if (gameWinner === 'weiss' && playerBlackId && playerWhiteId) {
+          await updateElo(playerWhiteId, playerBlackId)
+        }
+        
         setWinner(gameWinner)
         setShowWinnerAnimation(true)
         
@@ -145,7 +188,7 @@ export default function OnlineGame({
     }
     
     checkIfBlocked()
-  }, [currentTurn, brett, gameId, winner, supabase])
+  }, [currentTurn, brett, gameId, winner, supabase, playerBlackId, playerWhiteId])
 
   useEffect(() => {
     const loadGame = async () => {
@@ -155,7 +198,7 @@ export default function OnlineGame({
 
       const { data } = await supabase
         .from('games')
-        .select('board, current_turn')
+        .select('board, current_turn, player_black, player_white')
         .eq('id', gameId)
         .single()
 
@@ -165,6 +208,10 @@ export default function OnlineGame({
           : data.board
         setBrett(parsedBoard)
         setCurrentTurn(data.current_turn)
+        
+        // 🔥 Spieler-IDs speichern
+        setPlayerBlackId(data.player_black)
+        setPlayerWhiteId(data.player_white)
         
         const gameWinner = checkWinner(parsedBoard)
         if (gameWinner) {
@@ -259,12 +306,19 @@ export default function OnlineGame({
     
     const gameWinner = checkWinner(neuesBrett)
     if (gameWinner) {
+      // 🔥 ELO updaten
+      if (gameWinner === 'schwarz' && playerBlackId && playerWhiteId) {
+        await updateElo(playerBlackId, playerWhiteId)
+      } else if (gameWinner === 'weiss' && playerBlackId && playerWhiteId) {
+        await updateElo(playerWhiteId, playerBlackId)
+      }
+      
       setWinner(gameWinner)
       setShowWinnerAnimation(true)
     }
   }
 
-  // 🔥 VERBESSERTE Winner Animation mit Rematch und Menü-Button
+  // 🔥 VERBESSERTE Winner Animation mit ELO-Anzeige
   if (winner && showWinnerAnimation) {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
@@ -278,6 +332,17 @@ export default function OnlineGame({
           <p className="text-2xl text-amber-300 mb-8">
             {winner === 'schwarz' ? '⚫ Schwarz' : '⚪ Weiß'} hat gewonnen!
           </p>
+          
+          {/* 🔥 NEU: ELO Anzeige */}
+          {eloChange !== null && (
+            <div className="bg-amber-900/50 p-4 rounded-lg mb-6 border border-amber-500/30">
+              <p className="text-amber-300 text-sm mb-1">ELO Veränderung</p>
+              <p className={`text-3xl font-bold ${eloChange > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {eloChange > 0 ? '+' : ''}{eloChange}
+              </p>
+            </div>
+          )}
+          
           <div className="space-y-4">
             <button
               onClick={() => {
@@ -299,6 +364,14 @@ export default function OnlineGame({
             >
               🏠 Zurück zum Menü
             </button>
+            
+            {/* 🔥 Link zum Profil */}
+            <a
+              href={`/profil/${userId}`}
+              className="block text-amber-300 hover:text-white text-sm transition-colors"
+            >
+              📊 Mein Profil ansehen
+            </a>
           </div>
         </div>
       </div>
