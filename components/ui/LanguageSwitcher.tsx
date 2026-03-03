@@ -10,15 +10,11 @@ export default function LanguageSwitcher() {
     const checkCookie = () => {
       const cookies = document.cookie.split(';')
       const localeCookie = cookies.find(c => c.trim().startsWith('NEXT_LOCALE='))
-      console.log('Aktuelle Cookies:', document.cookie)
-      console.log('Gefundener Locale-Cookie:', localeCookie)
       
       if (localeCookie) {
         const value = localeCookie.split('=')[1]
-        console.log('Sprache aus Cookie:', value)
         setCurrentLocale(value)
       } else {
-        console.log('Kein Cookie gefunden, setze Standard: de')
         setCurrentLocale('de')
       }
     }
@@ -29,9 +25,7 @@ export default function LanguageSwitcher() {
   const switchToGerman = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    console.log('🇩🇪 Deutsch ausgewählt')
     document.cookie = 'NEXT_LOCALE=de; path=/; max-age=31536000; SameSite=Lax'
-    console.log('Cookie gesetzt. Aktuelle Cookies:', document.cookie)
     
     // Timeout für Handy
     setTimeout(() => {
@@ -42,9 +36,7 @@ export default function LanguageSwitcher() {
   const switchToEnglish = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    console.log('🇬🇧 Englisch ausgewählt')
     document.cookie = 'NEXT_LOCALE=en; path=/; max-age=31536000; SameSite=Lax'
-    console.log('Cookie gesetzt. Aktuelle Cookies:', document.cookie)
     
     // Timeout für Handy
     setTimeout(() => {
