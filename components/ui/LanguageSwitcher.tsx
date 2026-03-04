@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 export default function LanguageSwitcher() {
   const [currentLocale, setCurrentLocale] = useState('de')
 
-  // Beim Start: Cookie lesen
+  // Beim Start: Cookie lesen - OHNE LOGS!
   useEffect(() => {
     const checkCookie = () => {
       const cookies = document.cookie.split(';')
@@ -26,47 +26,35 @@ export default function LanguageSwitcher() {
     e.preventDefault()
     e.stopPropagation()
     document.cookie = 'NEXT_LOCALE=de; path=/; max-age=31536000; SameSite=Lax'
-    
-    // Timeout für Handy
-    setTimeout(() => {
-      window.location.reload()
-    }, 50)
+    setTimeout(() => window.location.reload(), 50)
   }
 
   const switchToEnglish = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault()
     e.stopPropagation()
     document.cookie = 'NEXT_LOCALE=en; path=/; max-age=31536000; SameSite=Lax'
-    
-    // Timeout für Handy
-    setTimeout(() => {
-      window.location.reload()
-    }, 50)
+    setTimeout(() => window.location.reload(), 50)
   }
 
   return (
     <div className="flex gap-2">
       <button
         onClick={switchToGerman}
-        onTouchStart={switchToGerman}
-        className={`px-4 py-2 rounded-lg transition-all min-h-[44px] min-w-[100px] text-base ${
+        className={`px-4 py-2 rounded-lg transition-all min-h-[44px] min-w-[100px] ${
           currentLocale === 'de' 
-            ? 'bg-amber-600 text-white shadow-lg' 
-            : 'bg-white/10 text-white hover:bg-white/20 active:bg-white/30'
+            ? 'bg-amber-600 text-white' 
+            : 'bg-white/10 text-white hover:bg-white/20'
         }`}
-        style={{ touchAction: 'manipulation' }}
       >
         🇩🇪 Deutsch
       </button>
       <button
         onClick={switchToEnglish}
-        onTouchStart={switchToEnglish}
-        className={`px-4 py-2 rounded-lg transition-all min-h-[44px] min-w-[100px] text-base ${
+        className={`px-4 py-2 rounded-lg transition-all min-h-[44px] min-w-[100px] ${
           currentLocale === 'en' 
-            ? 'bg-amber-600 text-white shadow-lg' 
-            : 'bg-white/10 text-white hover:bg-white/20 active:bg-white/30'
+            ? 'bg-amber-600 text-white' 
+            : 'bg-white/10 text-white hover:bg-white/20'
         }`}
-        style={{ touchAction: 'manipulation' }}
       >
         🇬🇧 English
       </button>
