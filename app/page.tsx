@@ -10,7 +10,7 @@ import type { User } from '@supabase/supabase-js'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { useTranslations } from 'next-intl'
 import Header from '@/components/Header'
-import GameChat from '@/components/game/GameChat' 
+import GameChat from '@/components/game/GameChat'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
@@ -23,11 +23,11 @@ export default function Home() {
   const [showRaum, setShowRaum] = useState(false)
   const [aktuellerRaumId, setAktuellerRaumId] = useState<string | null>(null)
   const [isBotGame, setIsBotGame] = useState(false)
-  
+
   // Für geladene Spiel-Daten
   const [savedBrett, setSavedBrett] = useState<any>(null)
   const [savedTurn, setSavedTurn] = useState<any>(null)
-  
+
   const supabase = createClient()
 
   // 🔥 VERBESSERT: Beim Laden prüfen ob Spiel gespeichert ist
@@ -36,7 +36,7 @@ export default function Home() {
 
     const keys = Object.keys(localStorage)
     const gameKeys = keys.filter(key => key.startsWith('game_'))
-    
+
     if (gameKeys.length > 0) {
       const latestGame = gameKeys
         .map(key => ({
@@ -46,8 +46,7 @@ export default function Home() {
         .sort((a, b) => b.data.timestamp - a.data.timestamp)[0]
 
       const savedGame = latestGame.data
-      console.log('🔄 Geladener Spielstand:', savedGame)
-      
+
       if (savedGame.userId === user.id) {
         setGameId(savedGame.gameId)
         setPlayerColor(savedGame.playerColor)
@@ -59,12 +58,11 @@ export default function Home() {
       }
     } else {
       const savedGame = localStorage.getItem('currentGame')
-      
+
       if (savedGame) {
         try {
           const { gameId, playerColor, isBotGame } = JSON.parse(savedGame)
-          console.log('🔄 Fortsetzen des Spiels (alt):', { gameId, playerColor, isBotGame })
-          
+
           setGameId(gameId)
           setPlayerColor(playerColor)
           setIsBotGame(isBotGame)
@@ -90,7 +88,7 @@ export default function Home() {
   // Auf Sprachwechsel reagieren
   useEffect(() => {
     if (!mounted) return
-    
+
     const checkLocale = () => {
       const cookies = document.cookie.split(';')
       const localeCookie = cookies.find(c => c.trim().startsWith('NEXT_LOCALE='))
@@ -99,7 +97,7 @@ export default function Home() {
         window.location.reload()
       }
     }
-    
+
     const interval = setInterval(checkLocale, 500)
     return () => clearInterval(interval)
   }, [locale, mounted])
@@ -120,8 +118,6 @@ export default function Home() {
   useEffect(() => {
     if (!aktuellerRaumId) return
 
-    console.log('👀 Höre auf Raum:', aktuellerRaumId)
-
     const subscription = supabase
       .channel(`raum-${aktuellerRaumId}`)
       .on(
@@ -133,20 +129,16 @@ export default function Home() {
           filter: `raum_id=eq.${aktuellerRaumId}`
         },
         (payload) => {
-          console.log('👀 Raum-Update erhalten:', payload.new)
-          
           if (payload.new.status === 'playing') {
-            console.log('🎮 Gegner beigetreten! Starte Spiel...')
-            
             const keys = Object.keys(localStorage)
             keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
-            
+
             localStorage.setItem('currentGame', JSON.stringify({
               gameId: payload.new.id,
               playerColor: 'schwarz',
               isBotGame: false
             }))
-            
+
             setGameId(payload.new.id)
             setPlayerColor('schwarz')
             setShowRaum(false)
@@ -173,17 +165,15 @@ export default function Home() {
 
   // Raum-Spiel starten (mit localStorage)
   const handleGameStarted = (gameId: number, spielerFarbe: 'schwarz' | 'weiss') => {
-    console.log('🎮 handleGameStarted aufgerufen:', { gameId, spielerFarbe })
-    
     const keys = Object.keys(localStorage)
     keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
-    
+
     localStorage.setItem('currentGame', JSON.stringify({
       gameId,
       playerColor: spielerFarbe,
       isBotGame: false
     }))
-    
+
     setGameId(gameId)
     setPlayerColor(spielerFarbe)
     setShowRaum(false)
@@ -194,17 +184,15 @@ export default function Home() {
 
   // Matchmaking mit Bot (mit localStorage)
   const handleMatchmakingFound = (id: number, color: 'schwarz' | 'weiss', isBot?: boolean) => {
-    console.log('🎯 Matchmaking gefunden:', { id, color, isBot })
-    
     const keys = Object.keys(localStorage)
     keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
-    
+
     localStorage.setItem('currentGame', JSON.stringify({
       gameId: id,
       playerColor: color,
       isBotGame: isBot || false
     }))
-    
+
     setGameId(id)
     setPlayerColor(color)
     setIsBotGame(isBot || false)
@@ -247,7 +235,7 @@ export default function Home() {
                 <br />
                 <span className="text-white">Dama</span>
               </h1>
-              
+
               <p className="text-lg sm:text-xl text-amber-100 mb-8 max-w-xl mx-auto lg:mx-0">
                 {t('subtitle')}
               </p>
@@ -306,7 +294,7 @@ export default function Home() {
             <div className="relative hidden lg:block animate-float" style={{ animationDelay: '0.5s' }}>
               {/* Brett mit Glow-Effekt */}
               <div className="absolute -inset-4 bg-gradient-to-r from-amber-600/30 to-amber-900/30 rounded-3xl blur-2xl animate-pulse-glow"></div>
-              
+
               <div className="relative bg-amber-950 p-4 rounded-2xl shadow-2xl border border-amber-500/30">
                 <div className="grid grid-cols-8 gap-0 aspect-square w-full max-w-[400px] mx-auto">
                   {/* Miniatur-Spielbrett mit sich bewegenden Steinen */}
@@ -315,9 +303,9 @@ export default function Home() {
                       const istDunkel = (row + col) % 2 !== 0
                       const hatStein = (row < 3 && istDunkel) || (row > 4 && istDunkel)
                       const farbe = row < 3 ? 'bg-gray-900' : 'bg-gray-100'
-                      
+
                       const animate = hatStein && Math.random() > 0.7
-                      
+
                       return (
                         <div
                           key={`${row}-${col}`}
@@ -345,7 +333,7 @@ export default function Home() {
           <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-12 animate-slide-in">
             {t('why.title')}
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { icon: '🎯', title: t('why.rules'), desc: t('why.rulesDesc'), delay: '0s' },
@@ -379,14 +367,14 @@ export default function Home() {
           </div>
         </footer>
       </div>
-    ) // ← Hier war der Fehler! Diese Klammer fehlte!
+    )
   }
 
   // 🎮 GAME SECTION für eingeloggte User - Jetzt mit neuem Header!
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950">
       <div className="max-w-4xl mx-auto p-4">
-        
+
         {/* 🔥 NEU: Einheitlicher Header (macht alles: Profil, Login, Logout) */}
         <Header />
 
@@ -397,7 +385,7 @@ export default function Home() {
                 {/* GEGNER SUCHEN */}
                 <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-amber-500/30">
                   <h2 className="text-2xl text-amber-300 mb-4 text-center">Spiel starten</h2>
-                  <Matchmaking 
+                  <Matchmaking
                     userId={user.id}
                     onGameFound={handleMatchmakingFound}
                   />
@@ -408,9 +396,9 @@ export default function Home() {
                   <h2 className="text-2xl text-amber-300 mb-4 text-center">Mit Freunden spielen</h2>
                   <button
                     onClick={() => setShowRaum(true)}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500 
-                               hover:from-blue-500 hover:to-blue-400 
-                               text-white text-xl sm:text-2xl font-bold 
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500
+                               hover:from-blue-500 hover:to-blue-400
+                               text-white text-xl sm:text-2xl font-bold
                                px-8 py-6 rounded-xl
                                shadow-xl hover:shadow-2xl
                                transform hover:scale-[1.02] transition-all
@@ -433,7 +421,6 @@ export default function Home() {
                 <RaumErstellen
                   userId={user.id}
                   onRaumErstellt={(raumId) => {
-                    console.log('🏠 Raum erstellt:', raumId)
                     setAktuellerRaumId(raumId)
                   }}
                   onGameStarted={handleGameStarted}
@@ -443,7 +430,7 @@ export default function Home() {
                     setShowRaum(false)
                     setAktuellerRaumId(null)
                   }}
-                  className="mt-4 w-full bg-gray-600/50 hover:bg-gray-600/70 
+                  className="mt-4 w-full bg-gray-600/50 hover:bg-gray-600/70
                              text-white px-6 py-4 rounded-xl
                              transition-all flex items-center justify-center gap-2
                              border border-gray-500/30"
@@ -461,7 +448,7 @@ export default function Home() {
                 const keys = Object.keys(localStorage)
                 keys.filter(key => key.startsWith('game_')).forEach(key => localStorage.removeItem(key))
                 localStorage.removeItem('currentGame')
-                
+
                 setGameId(null)
                 setPlayerColor(null)
                 setIsBotGame(false)
@@ -472,9 +459,9 @@ export default function Home() {
             >
               ← Zurück zum Menü
             </button>
-            
+
             {isBotGame ? (
-              <BotGame 
+              <BotGame
                 key={`bot-${gameId}`}
                 gameId={gameId}
                 userId={user.id}
@@ -483,7 +470,7 @@ export default function Home() {
                 initialTurn={savedTurn}
               />
             ) : (
-              <OnlineGame 
+              <OnlineGame
                 key={`online-${gameId}`}
                 gameId={gameId}
                 userId={user.id}
