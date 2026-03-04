@@ -16,6 +16,22 @@ interface Player {
   streak: number
 }
 
+// 🔥 NEU: Interface für die Datenbank-Antwort
+interface PlayerRating {
+  user_id: string
+  rating: number
+  games_played: number
+  wins: number
+  current_streak: number
+  users: {
+    email: string
+    user_metadata: {
+      full_name?: string
+      avatar_url?: string
+    }
+  } | null
+}
+
 export default function RanglistePage() {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,7 +64,7 @@ export default function RanglistePage() {
       .limit(100)
 
     if (data) {
-      const ranked = data
+      const ranked = (data as unknown as PlayerRating[])
         .filter(p => p.games_played > 0)
         .map((p, index) => ({
           rank: index + 1,
