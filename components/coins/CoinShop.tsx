@@ -111,7 +111,7 @@ export default function CoinShop() {
                 {pkg.price.toFixed(2)}€
               </div>
               
-              {/* Paypal Button */}
+              {/* Paypal Button - JETZT MIT INTENT! */}
               <div className="mt-4">
                 <PayPalButtons
                   style={{ 
@@ -122,6 +122,7 @@ export default function CoinShop() {
                   }}
                   createOrder={(data, actions) => {
                     return actions.order.create({
+                      intent: "CAPTURE", // ← DAS IST DER FIX!
                       purchase_units: [{
                         amount: {
                           value: pkg.price.toFixed(2),
