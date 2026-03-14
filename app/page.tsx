@@ -11,6 +11,8 @@ import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { useTranslations } from 'next-intl'
 import Header from '@/components/Header'
 import GameChat from '@/components/game/GameChat'
+import CoinShop from '@/components/coins/CoinShop'
+import CoinBalance from '@/components/coins/CoinBalance'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
@@ -23,6 +25,7 @@ export default function Home() {
   const [showRaum, setShowRaum] = useState(false)
   const [aktuellerRaumId, setAktuellerRaumId] = useState<string | null>(null)
   const [isBotGame, setIsBotGame] = useState(false)
+  const [showCoinShop, setShowCoinShop] = useState(false)  // ← NEU
 
   // Für geladene Spiel-Daten
   const [savedBrett, setSavedBrett] = useState<any>(null)
@@ -369,17 +372,42 @@ export default function Home() {
       </div>
     )
   }
-
-  // 🎮 GAME SECTION für eingeloggte User - Jetzt mit neuem Header!
+  // 🎮 GAME SECTION für eingeloggte User
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950">
       <div className="max-w-4xl mx-auto p-4">
-
-        {/* 🔥 NEU: Einheitlicher Header (macht alles: Profil, Login, Logout) */}
-        <Header />
+        
+        {/* 🔥 Header mit Coin-Balance INTEGRIERT */}
+        <div className="flex items-center justify-between">
+          <Header />
+          <CoinBalance />
+        </div>
 
         {!gameId ? (
           <>
+            {/* 🪙 Coin-Shop Button */}
+            <div className="mt-4 mb-2">
+              <button
+                onClick={() => setShowCoinShop(!showCoinShop)}
+                className="w-full bg-gradient-to-r from-amber-600 to-amber-500 
+                           text-white px-6 py-4 rounded-xl text-xl font-bold
+                           hover:from-amber-500 hover:to-amber-400 transition-all
+                           flex items-center justify-center gap-3
+                           border border-amber-400/30"
+              >
+                <span className="text-2xl">🪙</span>
+                Coins kaufen
+                <span className="text-xl opacity-60">→</span>
+              </button>
+            </div>
+
+            {/* 🪙 Coin-Shop (wenn geöffnet) */}
+            {showCoinShop && (
+              <div className="mb-6">
+                <CoinShop />
+              </div>
+            )}
+            
             {!showRaum ? (
               <div className="space-y-6 mt-6">
                 {/* GEGNER SUCHEN */}

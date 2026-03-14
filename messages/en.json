@@ -28,10 +28,17 @@
     }
   },
   "Game": {
+    "startGame": "Start Game",
     "findOpponent": "Find opponent",
     "searching": "Searching for opponent...",
+    "queueTime": "Time: {current} / {total}",
+    "playersInQueue": "Players in queue: {count}",
     "cancel": "Cancel",
+    "playWithFriends": "Play with Friends",
+    "createRoom": "Create room (invite friend)",
+    "backToMenu": "← Back to Menu",
     "youAre": "You are",
+    "youPlay": "You play",
     "black": "Black",
     "white": "White",
     "currentTurn": "Current turn",
@@ -41,7 +48,31 @@
     "copyLink": "Copy link",
     "yourRoomCode": "Your room code",
     "shareLink": "Share this link",
+    "minutesPerMove": "{minutes} minutes per move",
+    "botPlays": "Bot plays",
+    "chat": "Chat",
     "logout": "Logout",
-    "loggedIn": "Logged in"
+    "loggedIn": "Logged in",
+    "premium": "Premium features coming soon"
+  },
+  "Coins": {
+    "title": "Buy Coins",
+    "30coins": "30 Coins",
+    "60coins": "60 Coins",
+    "100coins": "100 Coins",
+    "bonus": "+{count} free",
+    "popular": "Popular",
+    "buy": "Buy",
+    "value": "100 Coins = €10 withdrawal value",
+    "minWithdrawal": "Minimum payout: €50",
+    "maxWithdrawal": "Max. 1x per month",
+    "bankTransfer": "Payouts via bank transfer (manual)"
+  },
+  "Common": {
+    "user": "User",
+    "logout": "Logout",
+    "german": "German",
+    "english": "English",
+    "et": "ET"
   }
 }

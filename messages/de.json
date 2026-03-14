@@ -28,10 +28,17 @@
     }
   },
   "Game": {
+    "startGame": "Spiel starten",
     "findOpponent": "Gegner suchen",
     "searching": "Suche Gegner...",
+    "queueTime": "Zeit: {current} / {total}",
+    "playersInQueue": "Spieler in Warteschlange: {count}",
     "cancel": "Abbrechen",
+    "playWithFriends": "Mit Freunden spielen",
+    "createRoom": "Raum erstellen (Freund einladen)",
+    "backToMenu": "← Zurück zum Menü",
     "youAre": "Du spielst",
+    "youPlay": "Du spielst",
     "black": "Schwarz",
     "white": "Weiß",
     "currentTurn": "Aktueller Zug",
@@ -41,7 +48,31 @@
     "copyLink": "Link kopieren",
     "yourRoomCode": "Dein Raum-Code",
     "shareLink": "Teile diesen Link",
-    "logout": "Logout",
-    "loggedIn": "Eingeloggt"
+    "minutesPerMove": "{minutes} Minuten pro Zug",
+    "botPlays": "Bot spielt",
+    "chat": "Chat",
+    "logout": "Abmelden",
+    "loggedIn": "Eingeloggt",
+    "premium": "Premium-Features bald verfügbar"
+  },
+  "Coins": {
+    "title": "Coins kaufen",
+    "30coins": "30 Coins",
+    "60coins": "60 Coins",
+    "100coins": "100 Coins",
+    "bonus": "+{count} gratis",
+    "popular": "Beliebt",
+    "buy": "Kaufen",
+    "value": "100 Coins = 10€ Auszahlungswert",
+    "minWithdrawal": "Mindestauszahlung: 50€",
+    "maxWithdrawal": "Max. 1x pro Monat",
+    "bankTransfer": "Auszahlungen per Banküberweisung (manuell)"
+  },
+  "Common": {
+    "user": "User",
+    "logout": "Abmelden",
+    "german": "Deutsch",
+    "english": "English",
+    "et": "ET"
   }
 }

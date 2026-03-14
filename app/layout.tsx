@@ -1,6 +1,7 @@
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { Inter } from 'next/font/google'
+import { Providers } from './providers' // ✅ Paypal Provider
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -46,14 +47,13 @@ export const metadata = {
       'en': 'https://habesha-dama.com/en',
     },
   },
-  // 🔥 NUR SVG und ICO - PNGs entfernt!
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
       { url: '/icon.svg', type: 'image/svg+xml' },
     ],
     apple: [
-      { url: '/icon.svg', type: 'image/svg+xml' }, // iOS kann SVG!
+      { url: '/icon.svg', type: 'image/svg+xml' },
     ],
   },
 }
@@ -68,12 +68,12 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <head>
-        {/* Icons werden über metadata verwaltet */}
-      </head>
+      <head />
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages}>
-          {children}
+          <Providers> {/* ✅ Paypal Provider umschließt alles */}
+            {children}
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>
