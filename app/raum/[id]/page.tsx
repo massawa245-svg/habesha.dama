@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import OnlineGame from '@/components/game/OnlineGame'
+import OnlineCounter from '@/components/OnlineCounter'
 
 export default function RaumPage() {
   const params = useParams()

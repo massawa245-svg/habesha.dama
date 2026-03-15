@@ -1,368 +1,395 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { initialesBrett } from '@/lib/game/logic'
 import { useTranslations } from 'next-intl'
+import { usePresence } from '@/hooks/usePresence'
 
 interface MatchmakingProps {
   userId: string
   onGameFound: (gameId: number, playerColor: 'schwarz' | 'weiss', isBotGame?: boolean) => void
 }
 
+const LIGA_STUFEN = [
+  { name: 'Anfänger',  min: 0,    icon: '🥉', color: '#cd7f32', glow: 'rgba(205,127,50,0.4)'  },
+  { name: 'Kämpfer',   min: 1100, icon: '🥈', color: '#c0c0c0', glow: 'rgba(192,192,192,0.4)' },
+  { name: 'Krieger',   min: 1300, icon: '🥇', color: '#ffd700', glow: 'rgba(255,215,0,0.4)'   },
+  { name: 'Meister',   min: 1500, icon: '💎', color: '#00cfff', glow: 'rgba(0,207,255,0.4)'   },
+  { name: 'Legende',   min: 1800, icon: '👑', color: '#ff6b35', glow: 'rgba(255,107,53,0.4)'  },
+]
+
+function getLiga(rating: number) {
+  return [...LIGA_STUFEN].reverse().find(l => rating >= l.min) || LIGA_STUFEN[0]
+}
+
+function randomDiceBearUrl() {
+  const styles = ['adventurer', 'avataaars', 'big-smile', 'fun-emoji', 'personas']
+  const style = styles[Math.floor(Math.random() * styles.length)]
+  const seed = Math.random().toString(36).substring(2, 8)
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`
+}
+
 export default function Matchmaking({ userId, onGameFound }: MatchmakingProps) {
   const t = useTranslations('Game')
+  const supabase = createClient()
+
   const [searching, setSearching] = useState(false)
   const [gameChannel, setGameChannel] = useState<RealtimeChannel | null>(null)
   const [searchTime, setSearchTime] = useState(0)
-  const [waitingPlayers, setWaitingPlayers] = useState(0)
   const [showBotOption, setShowBotOption] = useState(false)
   const [currentGameId, setCurrentGameId] = useState<number | null>(null)
-  const supabase = createClient()
+  const [opponentFound, setOpponentFound] = useState(false)
 
-  // Timer für Suchdauer
+  const [myAvatar, setMyAvatar] = useState('')
+  const [myName, setMyName] = useState('Du')
+  const [myRating, setMyRating] = useState(1200)
+  const [opponentAvatar, setOpponentAvatar] = useState('')
+  const [rotatingAvatars, setRotatingAvatars] = useState<string[]>([])
+  const [currentAvatarIdx, setCurrentAvatarIdx] = useState(0)
+
+  // ✅ Presence Hook
+  const { onlineCount, searchingCount, updateStatus } = usePresence(userId, 'online')
+
+  // Eigene User-Daten laden
+  useEffect(() => {
+    const loadMyData = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      setMyAvatar(user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.id}`)
+      setMyName(user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Du')
+      const { data: rating } = await supabase.from('player_ratings').select('rating').eq('user_id', user.id).single()
+      setMyRating(rating?.rating || 1200)
+    }
+    loadMyData()
+  }, [])
+
+  // Rotierende Avatare
+  useEffect(() => {
+    if (!searching) return
+    const avatars = Array.from({ length: 6 }, () => randomDiceBearUrl())
+    setRotatingAvatars(avatars)
+    setCurrentAvatarIdx(0)
+    const interval = setInterval(() => setCurrentAvatarIdx(prev => (prev + 1) % avatars.length), 800)
+    return () => clearInterval(interval)
+  }, [searching])
+
+  // Timer
   useEffect(() => {
     let interval: NodeJS.Timeout
-    
     if (searching) {
-      interval = setInterval(() => {
-        setSearchTime(prev => prev + 1)
-      }, 1000)
+      interval = setInterval(() => setSearchTime(prev => prev + 1), 1000)
     } else {
       setSearchTime(0)
     }
-    
-    return () => {
-      if (interval) clearInterval(interval)
-    }
+    return () => { if (interval) clearInterval(interval) }
   }, [searching])
 
-  // Prüfe alle 3 Sekunden wie viele Spieler warten
-  useEffect(() => {
-    if (!searching) return
-    
-    const checkWaitingPlayers = setInterval(async () => {
-      try {
-        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString()
-        
-        const { data, error } = await supabase
-          .from('games')
-          .select('id')
-          .eq('status', 'waiting')
-          .gt('created_at', twoMinutesAgo)
-        
-        if (error) {
-          console.error('❌ Fehler beim Abrufen der Warteschlange:', error)
-          return
-        }
-        
-        setWaitingPlayers(data?.length || 0)
-      } catch (err) {
-        console.error('❌ Ausnahme in Warteschlangen-Prüfung:', err)
-      }
-    }, 3000)
-    
-    return () => clearInterval(checkWaitingPlayers)
-  }, [searching, supabase])
-
-  // Aufräumen alter Spiele
   const cleanupOldGames = async () => {
-    try {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-      
-      await supabase
-        .from('games')
-        .delete()
-        .eq('status', 'waiting')
-        .lt('created_at', fiveMinutesAgo)
-    } catch (err) {
-      console.error('❌ Fehler beim Aufräumen alter Spiele:', err)
-    }
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    await supabase.from('games').delete().eq('status', 'waiting').lt('created_at', fiveMinutesAgo)
   }
 
   const startSearch = async () => {
     setSearching(true)
     setShowBotOption(false)
-    console.log('🔍 Suche echten Gegner...')
+    setOpponentFound(false)
+
+    // ✅ Status auf "searching" setzen
+    await updateStatus('searching')
 
     try {
-      // Prüfe Datenbankverbindung zuerst
-      const { error: testError } = await supabase
-        .from('games')
-        .select('count')
-        .limit(1)
-      
-      if (testError) {
-        console.error('❌ Datenbank nicht erreichbar:', testError)
-        alert('Datenbank-Fehler. Bitte später erneut versuchen.')
-        setSearching(false)
-        return
-      }
-
       await cleanupOldGames()
 
-      // Nach offenen und frischen Spielen suchen
       const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString()
-      
-      const { data: openGames, error: searchError } = await supabase
-        .from('games')
-        .select('*')
-        .eq('status', 'waiting')
-        .gt('created_at', oneMinuteAgo)
-        .order('created_at', { ascending: true })
-        .limit(5)
+      const { data: openGames } = await supabase
+        .from('games').select('*').eq('status', 'waiting')
+        .gt('created_at', oneMinuteAgo).order('created_at', { ascending: true }).limit(5)
 
-      if (searchError) {
-        console.error('❌ Fehler bei der Spielsuche:', searchError)
-        setSearching(false)
-        return
-      }
-
-      console.log('📊 Frische offene Spiele:', openGames?.length || 0)
-
-      // Prüfen ob es ein Spiel gibt, das NICHT von mir ist
       const availableGame = openGames?.find(game => game.player_black !== userId)
 
       if (availableGame) {
-        console.log('🎮 Echter Gegner gefunden! Trete bei:', availableGame.id)
-        
-        const { error } = await supabase
-          .from('games')
-          .update({ 
-            player_white: userId, 
-            status: 'playing',
-            current_turn: 'schwarz'
-          })
-          .eq('id', availableGame.id)
-          .eq('status', 'waiting')
+        const { data: oppUser } = await supabase
+          .from('users').select('user_metadata').eq('id', availableGame.player_black).single()
+        setOpponentAvatar(oppUser?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${availableGame.player_black}`)
+        setOpponentFound(true)
+
+        const { error } = await supabase.from('games').update({
+          player_white: userId, status: 'playing', current_turn: 'schwarz'
+        }).eq('id', availableGame.id).eq('status', 'waiting')
 
         if (!error) {
-          console.log('✅ Erfolgreich beigetreten!')
+          await updateStatus('playing') // ✅
           setTimeout(() => {
             onGameFound(availableGame.id, 'weiss', false)
             setSearching(false)
-          }, 500)
+          }, 1500)
           return
-        } else {
-          console.error('❌ Fehler beim Beitreten:', error)
         }
       }
 
-      // Kein echter Gegner gefunden - eigenes Spiel erstellen
-      console.log('🆕 Kein Gegner da, erstelle eigenes Spiel...')
-      
-      const newGameData = {
-        player_black: userId,
-        player_white: null,
-        status: 'waiting',
-        current_turn: 'schwarz',
-        board: JSON.stringify(initialesBrett()),
-        created_at: new Date().toISOString()
-      }
-      
-      console.log('📝 Erstelle Spiel mit Daten:', newGameData)
-      
       const { data: newGame, error: createError } = await supabase
-        .from('games')
-        .insert(newGameData)
-        .select()
-        .single()
+        .from('games').insert({
+          player_black: userId,
+          player_white: null,
+          status: 'waiting',
+          current_turn: 'schwarz',
+          board: JSON.stringify(initialesBrett()),
+          created_at: new Date().toISOString()
+        }).select().single()
 
-      if (createError) {
-        console.error('❌ Fehler beim Erstellen:', createError)
-        if (createError.code === '42501') {
-          alert('Berechtigungsfehler. Bitte neu einloggen.')
-        } else if (createError.code === '23505') {
-          alert('Ein Spiel mit dieser ID existiert bereits. Bitte erneut versuchen.')
-        } else {
-          alert(`Fehler: ${createError.message || 'Unbekannter Fehler'}`)
-        }
+      if (createError || !newGame) {
+        alert('Fehler beim Erstellen des Spiels.')
         setSearching(false)
+        await updateStatus('online')
         return
       }
 
-      if (!newGame) {
-        console.error('❌ Keine Daten zurückbekommen')
-        alert('Fehler beim Erstellen des Spiels. Keine Daten erhalten.')
-        setSearching(false)
-        return
-      }
-
-      console.log('✅ Eigenes Spiel erstellt:', newGame)
       setCurrentGameId(newGame.id)
 
-       // Auf echten Gegner warten (maximal 25 Sekunden)
-let waited = 0
-const maxWait = 25
+      let waited = 0
+      const maxWait = 25
 
-const waitInterval = setInterval(async () => {
-  try {
-    waited++
-    
-    // maybeSingle() statt single() - gibt null zurück wenn nicht gefunden
-    const { data, error } = await supabase
-      .from('games')
-      .select('status')
-      .eq('id', newGame.id)
-      .maybeSingle()
-    
-    if (error) {
-      console.error('❌ Fehler beim Prüfen des Spielstatus:', error)
-      return
-    }
-    
-    // Wenn Spiel nicht existiert (wurde gelöscht)
-    if (!data) {
-      console.log('⚠️ Spiel wurde gelöscht, breche Suche ab')
-      clearInterval(waitInterval)
-      setSearching(false)
-      setShowBotOption(false)
-      return
-    }
-    
-    // Wenn Gegner beigetreten ist
-    if (data.status === 'playing') {
-      console.log('🎮 Echter Gegner gefunden!')
-      clearInterval(waitInterval)
-      onGameFound(newGame.id, 'schwarz', false)
-      setSearching(false)
-    }
-    
-      // Nach 25 Sekunden Bot-Option anzeigen
-      if (waited >= maxWait && !showBotOption) {
-        clearInterval(waitInterval)
-       setShowBotOption(true)
-      }
-    } catch (err) {
-     console.error('❌ Ausnahme beim Warten auf Gegner:', err)
-    }
-    }, 1000)
+      const waitInterval = setInterval(async () => {
+        waited++
+        const { data } = await supabase
+          .from('games').select('status, player_white').eq('id', newGame.id).maybeSingle()
+
+        if (!data) {
+          clearInterval(waitInterval)
+          setSearching(false)
+          await updateStatus('online')
+          return
+        }
+
+        if (data.status === 'playing' && data.player_white) {
+          const { data: oppUser } = await supabase
+            .from('users').select('user_metadata').eq('id', data.player_white).single()
+          setOpponentAvatar(oppUser?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.player_white}`)
+          setOpponentFound(true)
+          clearInterval(waitInterval)
+
+          await updateStatus('playing') // ✅
+          setTimeout(() => {
+            onGameFound(newGame.id, 'schwarz', false)
+            setSearching(false)
+          }, 1500)
+        }
+
+        if (waited >= maxWait && !showBotOption) {
+          clearInterval(waitInterval)
+          setShowBotOption(true)
+        }
+      }, 1000)
 
     } catch (error) {
-      console.error('❌ Unerwarteter Fehler:', error)
-      alert('Ein unerwarteter Fehler ist aufgetreten. Bitte Seite neu laden.')
+      console.error('❌ Fehler:', error)
       setSearching(false)
+      await updateStatus('online')
     }
   }
 
-  // ✅ KORRIGIERTE Bot-Spiel starten Funktion
   const startBotGame = async () => {
-    if (!currentGameId) {
-      console.error('❌ Keine GameId für Bot-Spiel')
-      return
-    }
-    
-    console.log('🤖 Bot-Spiel wird gestartet...')
-    
-    try {
-      // NUR status updaten - is_bot_game gibt es nicht in der DB!
-      const { error } = await supabase
-        .from('games')
-        .update({ 
-          status: 'playing'
-        })
-        .eq('id', currentGameId)
-      
-      if (error) {
-        console.error('❌ Fehler beim Bot-Update:', error)
-        alert('Fehler beim Starten des Bot-Spiels.')
-        return
-      }
-      
-      // Bot-Status im localStorage speichern
-      localStorage.setItem(`bot_game_${currentGameId}`, 'true')
-      
+    if (!currentGameId) return
+    setOpponentAvatar('https://api.dicebear.com/7.x/bottts/svg?seed=habeshabot')
+    setOpponentFound(true)
+
+    const { error } = await supabase.from('games').update({ status: 'playing' }).eq('id', currentGameId)
+    if (error) { alert('Fehler beim Starten des Bot-Spiels.'); return }
+
+    localStorage.setItem(`bot_game_${currentGameId}`, 'true')
+    await updateStatus('playing') // ✅
+    setTimeout(() => {
       onGameFound(currentGameId, 'schwarz', true)
       setSearching(false)
       setShowBotOption(false)
-    } catch (error) {
-      console.error('❌ Fehler beim Bot-Start:', error)
-      alert('Fehler beim Starten des Bot-Spiels.')
-    }
+    }, 1200)
   }
 
   const cancelSearch = async () => {
-    if (gameChannel) {
-      gameChannel.unsubscribe()
-    }
-    
-    // Eigenes Spiel löschen falls vorhanden
+    if (gameChannel) gameChannel.unsubscribe()
     if (currentGameId) {
-      try {
-        await supabase
-          .from('games')
-          .delete()
-          .eq('id', currentGameId)
-          .eq('status', 'waiting')
-      } catch (err) {
-        console.error('❌ Fehler beim Löschen des Spiels:', err)
-      }
+      await supabase.from('games').delete().eq('id', currentGameId).eq('status', 'waiting')
     }
-    
+    await updateStatus('online') // ✅
     setSearching(false)
     setSearchTime(0)
     setShowBotOption(false)
     setCurrentGameId(null)
+    setOpponentFound(false)
   }
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
+  const liga = getLiga(myRating)
 
-  return (
-    <div className="w-full">
-      {!searching ? (
+  // ── HAUPT-ANSICHT ────────────────────────────────────────────────────────────
+  if (!searching) {
+    return (
+      <div className="space-y-3">
+        {/* ✅ Online Counter */}
+        <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full border border-green-500/20">
+            <div className="relative">
+              <div className="w-2.5 h-2.5 bg-green-500 rounded-full" />
+              <div className="absolute inset-0 w-2.5 h-2.5 bg-green-500 rounded-full animate-ping opacity-60" />
+            </div>
+            <span className="text-green-400 text-sm font-medium">{onlineCount} online</span>
+          </div>
+          {searchingCount > 0 && (
+            <div className="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full border border-amber-500/20">
+              <span className="text-amber-300 text-sm">⚔️ {searchingCount} suchen gerade</span>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={startSearch}
-          className="w-full bg-gradient-to-r from-green-600 to-green-500 
-                     hover:from-green-500 hover:to-green-400 
-                     text-white text-xl sm:text-2xl font-bold 
-                     px-8 py-6 rounded-xl
-                     shadow-xl hover:shadow-2xl
+          className="w-full bg-gradient-to-r from-green-600 to-green-500
+                     hover:from-green-500 hover:to-green-400
+                     text-white text-xl sm:text-2xl font-bold
+                     px-8 py-6 rounded-xl shadow-xl hover:shadow-2xl
                      transform hover:scale-[1.02] transition-all
                      border-2 border-green-400
-                     flex items-center justify-center gap-4
-                     min-h-[80px]"
+                     flex items-center justify-center gap-4 min-h-[80px]"
         >
           <span className="text-3xl">⚔️</span>
           <span>{t('findOpponent')}</span>
           <span className="text-2xl opacity-60">→</span>
         </button>
-      ) : (
-        <div className="bg-amber-800/30 p-8 rounded-xl text-center border border-amber-500/30">
-          <p className="text-white text-xl mb-2">{t('searching')}</p>
-          <p className="text-amber-300 text-sm mb-2">
-            Zeit: {formatTime(searchTime)} / 0:30
-          </p>
-          
-          <p className="text-green-400 text-sm mb-4">
-            Spieler in Warteschlange: {waitingPlayers}
-          </p>
-          
-          <div className="flex justify-center mb-6">
-            <div className="animate-spin text-5xl text-amber-300">⏳</div>
+      </div>
+    )
+  }
+
+  // ── SUCH-ANSICHT (Liga-Design) ───────────────────────────────────────────────
+  return (
+    <div className="w-full">
+      <div className="relative rounded-2xl overflow-hidden border-2 border-amber-600/50"
+        style={{
+          background: 'linear-gradient(160deg, #3d1a00 0%, #5c2a00 40%, #3d1a00 100%)',
+          boxShadow: `0 0 40px ${liga.glow}, 0 8px 32px rgba(0,0,0,0.5)`
+        }}
+      >
+        {/* Dekorative Ecken */}
+        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-amber-500/60 rounded-tl-2xl" />
+        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-amber-500/60 rounded-tr-2xl" />
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-amber-500/60 rounded-bl-2xl" />
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-amber-500/60 rounded-br-2xl" />
+
+        <div className="relative z-10 p-6">
+
+          {/* Liga + Online Counter */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border"
+              style={{ background: `linear-gradient(135deg, ${liga.glow}, transparent)`, borderColor: liga.color + '60' }}
+            >
+              <span className="text-xl">{liga.icon}</span>
+              <span className="font-bold text-lg" style={{ color: liga.color }}>{liga.name}</span>
+            </div>
+
+            {/* ✅ Online Counter während Suche */}
+            <div className="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full">
+              <div className="relative">
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                <div className="absolute inset-0 w-2 h-2 bg-green-500 rounded-full animate-ping opacity-60" />
+              </div>
+              <span className="text-green-400 text-xs">{onlineCount} online</span>
+              {searchingCount > 0 && (
+                <span className="text-amber-300 text-xs">· ⚔️ {searchingCount} suchen</span>
+              )}
+            </div>
           </div>
 
-          <div className="w-full bg-amber-900/50 h-2 rounded-full mb-6 overflow-hidden">
-            <div 
-              className="bg-green-500 h-full transition-all duration-300"
-              style={{ width: `${(searchTime / 30) * 100}%` }}
+          {/* VS Bereich */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            {/* Eigener Avatar */}
+            <div className="flex-1 flex flex-col items-center gap-2">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-4"
+                  style={{ borderColor: liga.color, boxShadow: `0 0 20px ${liga.glow}` }}
+                >
+                  {myAvatar ? (
+                    <img src={myAvatar} alt={myName} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-amber-800 flex items-center justify-center text-3xl">👤</div>
+                  )}
+                </div>
+                <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full border-2 border-amber-900" />
+              </div>
+              <span className="text-white font-bold text-sm truncate max-w-[80px] text-center">{myName}</span>
+              <span className="text-amber-400 text-xs">{myRating} Pkt</span>
+              <div className="flex gap-1">
+                {[0,1,2].map(i => (
+                  <div key={i} className="w-2 h-2 rounded-full bg-green-500 animate-bounce"
+                    style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
+            </div>
+
+            {/* VS */}
+            <div className="flex flex-col items-center gap-1">
+              <div className="text-3xl font-black text-amber-300"
+                style={{ textShadow: '0 0 20px rgba(251,191,36,0.8)' }}>VS</div>
+              <div className="text-amber-500/60 text-xs">{formatTime(searchTime)}</div>
+            </div>
+
+            {/* Gegner Avatar */}
+            <div className="flex-1 flex flex-col items-center gap-2">
+              <div className="relative">
+                <div className={`w-20 h-20 rounded-full overflow-hidden border-4 transition-all duration-500`}
+                  style={{
+                    borderColor: opponentFound ? '#22c55e' : '#f59e0b',
+                    boxShadow: opponentFound ? '0 0 20px rgba(34,197,94,0.5)' : '0 0 20px rgba(245,158,11,0.3)'
+                  }}
+                >
+                  {opponentFound ? (
+                    <img src={opponentAvatar} alt="Gegner" className="w-full h-full object-cover" />
+                  ) : rotatingAvatars.length > 0 ? (
+                    <img key={currentAvatarIdx} src={rotatingAvatars[currentAvatarIdx]}
+                      alt="Suche..." className="w-full h-full object-cover transition-opacity duration-300" />
+                  ) : (
+                    <div className="w-full h-full bg-amber-900 flex items-center justify-center text-3xl animate-pulse">❓</div>
+                  )}
+                </div>
+                {!opponentFound && (
+                  <div className="absolute -inset-1 rounded-full border-2 border-amber-400/40 animate-ping" />
+                )}
+              </div>
+              <span className="text-amber-300 font-bold text-sm text-center">
+                {opponentFound ? 'Gefunden! 🎉' : 'Wird gesucht...'}
+              </span>
+              {!opponentFound ? (
+                <div className="flex gap-1">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="w-2 h-2 rounded-full bg-amber-500 animate-bounce"
+                      style={{ animationDelay: `${i * 0.15}s` }} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-green-400 text-xl animate-bounce">✓</div>
+              )}
+            </div>
+          </div>
+
+          {/* Fortschrittsbalken */}
+          <div className="w-full bg-amber-950/80 h-2 rounded-full mb-4 overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-1000"
+              style={{
+                width: `${Math.min((searchTime / 25) * 100, 100)}%`,
+                background: `linear-gradient(90deg, ${liga.color}, #22c55e)`
+              }}
             />
           </div>
 
+          {/* Bot Option */}
           {showBotOption && (
-            <div className="mb-4 space-y-2">
-              <p className="text-yellow-400 text-sm">
-                ⏱️ Kein Gegner gefunden
-              </p>
-              <button
-                onClick={startBotGame}
-                className="w-full bg-purple-600 hover:bg-purple-700 
-                           text-white px-6 py-3 rounded-lg 
-                           transition-all border border-purple-400/30
+            <div className="mb-4 p-4 rounded-xl border border-amber-600/30 bg-amber-900/30 text-center">
+              <p className="text-amber-300 text-sm mb-3">⏱️ Kein Gegner gefunden — gegen Bot spielen?</p>
+              <button onClick={startBotGame}
+                className="w-full bg-gradient-to-r from-purple-700 to-purple-600
+                           hover:from-purple-600 hover:to-purple-500
+                           text-white px-6 py-3 rounded-xl font-bold
+                           transition-all border border-purple-500/40
                            flex items-center justify-center gap-2"
               >
                 <span className="text-xl">🤖</span>
@@ -371,14 +398,16 @@ const waitInterval = setInterval(async () => {
             </div>
           )}
 
-          <button
-            onClick={cancelSearch}
-            className="bg-red-600/50 hover:bg-red-700/70 text-white px-6 py-3 rounded-lg transition-all border border-red-400/30"
+          {/* Abbrechen */}
+          <button onClick={cancelSearch}
+            className="w-full bg-red-900/40 hover:bg-red-800/60 text-red-300
+                       px-6 py-3 rounded-xl transition-all border border-red-700/30 font-medium"
           >
             {t('cancel')}
           </button>
+
         </div>
-      )}
+      </div>
     </div>
   )
 }
